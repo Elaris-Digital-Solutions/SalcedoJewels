@@ -87,6 +87,8 @@ export class ProductFileService {
       // In a real implementation, you would fetch the list of files from the server
       // For now, we'll return a mock list based on the files we know exist
       const mockFiles = [
+        '1-AnilloSolitarioDiamante-3599.0.txt',
+        '1-GatoPruebaDeSubida-100-0.jpeg.txt',
         '2-AretesMariposaConBrillantes-1449.9.txt',
         '3-CollarCorazonEterno-2299.0.txt'
       ];

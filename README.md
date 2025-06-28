@@ -87,20 +87,20 @@ El sistema mostrará avisos específicos cuando:
 ## Instalación
 
 1. Clona el repositorio:
-```bash
+    ```bash
 git clone [url-del-repositorio]
 cd SalcedoJewels
-```
+    ```
 
 2. Instala las dependencias:
-```bash
-npm install
-```
+    ```bash
+    npm install
+    ```
 
 3. Inicia el servidor de desarrollo:
-```bash
-npm run dev
-```
+    ```bash
+    npm run dev
+    ```
 
 4. Abre [http://localhost:5173](http://localhost:5173) en tu navegador
 
