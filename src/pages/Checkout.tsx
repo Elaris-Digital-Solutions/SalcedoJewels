@@ -15,7 +15,7 @@ interface CustomerData {
 }
 
 interface PaymentData {
-  method: 'transfer' | 'card' | 'cash';
+  method: 'transfer' | 'cash';
   cardNumber: string;
   expiryDate: string;
   cvv: string;
@@ -117,7 +117,7 @@ const Checkout: React.FC = () => {
     setIsProcessing(true);
 
     // Simulate order processing
-    setTimeout(() => {
+    setTimeout(async () => {
       // Create order summary for email/WhatsApp
       const orderSummary = {
         customer: customerData,
@@ -126,6 +126,21 @@ const Checkout: React.FC = () => {
         total: getTotalPrice(),
         orderDate: new Date().toLocaleDateString('es-PE')
       };
+
+      // Enviar correo a msalcedojewels@gmail.com
+      const orderMessage = `\nNuevo pedido en Salcedo Jewels\n\nCliente: ${customerData.firstName} ${customerData.lastName}\nEmail: ${customerData.email}\nTeléfono: ${customerData.phone}\nDirección: ${customerData.address}, ${customerData.city}, ${customerData.country}\n\nProductos:\n${items.map(item => `• ${item.product.name} (x${item.quantity}) - S/ ${item.product.price.toLocaleString()}`).join('\n')}\n\nTotal: S/ ${getTotalPrice().toLocaleString()}\nMétodo de Pago: ${paymentData.method === 'transfer' ? 'Transferencia Bancaria' : 'Pago en Efectivo'}\n\nPor favor, confirmen la recepción de este pedido y procedan con los siguientes pasos.\n`;
+
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${customerData.firstName} ${customerData.lastName}`,
+          email: customerData.email,
+          phone: customerData.phone,
+          subject: 'Nuevo pedido Salcedo Jewels',
+          message: orderMessage
+        })
+      });
 
       // In a real app, you would send this to your backend
       console.log('Order submitted:', orderSummary);
@@ -342,152 +357,36 @@ const Checkout: React.FC = () => {
                 <div className="space-y-6">
                   {/* Payment Method Selection */}
                   <div className="space-y-3">
-                    <label className="block font-inter text-sm font-medium text-gray-700 mb-3">
-                      Selecciona tu método de pago preferido
+                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-cream-50 transition-colors duration-200">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="transfer"
+                        checked={paymentData.method === 'transfer'}
+                        onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
+                        className="text-gold-500 focus:ring-gold-500"
+                      />
+                      <div className="ml-3">
+                        <div className="font-inter font-medium text-gray-900">Transferencia Bancaria</div>
+                        <div className="font-inter text-sm text-gray-500">Te enviaremos los datos bancarios por WhatsApp</div>
+                      </div>
                     </label>
-                    
-                    <div className="space-y-3">
-                      <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-cream-50 transition-colors duration-200">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="transfer"
-                          checked={paymentData.method === 'transfer'}
-                          onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
-                          className="text-gold-500 focus:ring-gold-500"
-                        />
-                        <div className="ml-3">
-                          <div className="font-inter font-medium text-gray-900">Transferencia Bancaria</div>
-                          <div className="font-inter text-sm text-gray-500">Te enviaremos los datos bancarios por WhatsApp</div>
-                        </div>
-                      </label>
 
-                      <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-cream-50 transition-colors duration-200">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="card"
-                          checked={paymentData.method === 'card'}
-                          onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
-                          className="text-gold-500 focus:ring-gold-500"
-                        />
-                        <div className="ml-3">
-                          <div className="font-inter font-medium text-gray-900">Tarjeta de Crédito/Débito</div>
-                          <div className="font-inter text-sm text-gray-500">Visa, Mastercard, American Express</div>
-                        </div>
-                      </label>
-
-                      <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-cream-50 transition-colors duration-200">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="cash"
-                          checked={paymentData.method === 'cash'}
-                          onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
-                          className="text-gold-500 focus:ring-gold-500"
-                        />
-                        <div className="ml-3">
-                          <div className="font-inter font-medium text-gray-900">Pago en Efectivo</div>
-                          <div className="font-inter text-sm text-gray-500">Pago contra entrega (solo Lima)</div>
-                        </div>
-                      </label>
-                    </div>
+                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-cream-50 transition-colors duration-200">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cash"
+                        checked={paymentData.method === 'cash'}
+                        onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
+                        className="text-gold-500 focus:ring-gold-500"
+                      />
+                      <div className="ml-3">
+                        <div className="font-inter font-medium text-gray-900">Pago en Efectivo</div>
+                        <div className="font-inter text-sm text-gray-500">Pago contra entrega (solo Lima)</div>
+                      </div>
+                    </label>
                   </div>
-
-                  {/* Card Details (only if card payment selected) */}
-                  {paymentData.method === 'card' && (
-                    <div className="space-y-4 p-4 bg-cream-50 rounded-lg border border-beige-200">
-                      <h3 className="font-inter font-semibold text-gray-900">Datos de la Tarjeta</h3>
-                      
-                      <div>
-                        <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                          Nombre en la Tarjeta *
-                        </label>
-                        <input
-                          type="text"
-                          value={paymentData.cardName}
-                          onChange={(e) => handlePaymentDataChange('cardName', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                          placeholder="Nombre como aparece en la tarjeta"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                          Número de Tarjeta *
-                        </label>
-                        <div className="relative">
-                          <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                          <input
-                            type="text"
-                            value={paymentData.cardNumber}
-                            onChange={(e) => handlePaymentDataChange('cardNumber', e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                            placeholder="1234 5678 9012 3456"
-                            maxLength={19}
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                            Fecha de Vencimiento *
-                          </label>
-                          <div className="relative">
-                            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <input
-                              type="text"
-                              value={paymentData.expiryDate}
-                              onChange={(e) => handlePaymentDataChange('expiryDate', e.target.value)}
-                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                              placeholder="MM/AA"
-                              maxLength={5}
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                            CVV *
-                          </label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <input
-                              type="text"
-                              value={paymentData.cvv}
-                              onChange={(e) => handlePaymentDataChange('cvv', e.target.value)}
-                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                              placeholder="123"
-                              maxLength={4}
-                              required
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Payment Method Info */}
-                  {paymentData.method === 'transfer' && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="font-inter font-semibold text-blue-900 mb-2">Transferencia Bancaria</h4>
-                      <p className="font-inter text-sm text-blue-700">
-                        Una vez confirmado tu pedido, te enviaremos los datos bancarios por WhatsApp para que puedas realizar la transferencia.
-                      </p>
-                    </div>
-                  )}
-
-                  {paymentData.method === 'cash' && (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="font-inter font-semibold text-green-900 mb-2">Pago en Efectivo</h4>
-                      <p className="font-inter text-sm text-green-700">
-                        Disponible solo para entregas en Lima. Pagarás al momento de recibir tu pedido.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -521,7 +420,6 @@ const Checkout: React.FC = () => {
                     <h3 className="font-inter font-semibold text-gray-900 mb-3">Método de Pago</h3>
                     <p className="text-sm">
                       {paymentData.method === 'transfer' && 'Transferencia Bancaria'}
-                      {paymentData.method === 'card' && `Tarjeta terminada en ${paymentData.cardNumber.slice(-4)}`}
                       {paymentData.method === 'cash' && 'Pago en Efectivo'}
                     </p>
                   </div>
