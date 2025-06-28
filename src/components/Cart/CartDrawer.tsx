@@ -132,7 +132,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               {/* Actions */}
               <div className="space-y-3">
                 <Link
-                  to="/contact"
+                  to="/checkout"
                   onClick={onClose}
                   className="w-full bg-gold-500 hover:bg-gold-600 text-white px-6 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
@@ -150,7 +150,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
               {/* Note */}
               <p className="font-inter text-xs text-gray-500 text-center">
-                Contáctanos para finalizar tu compra y coordinar el pago
+                Completa tu información para finalizar la compra
               </p>
             </div>
           )}

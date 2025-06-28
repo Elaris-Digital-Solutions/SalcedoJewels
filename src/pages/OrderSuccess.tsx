@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { CheckCircle, MessageCircle, Mail, ArrowRight } from 'lucide-react';
+import { CheckCircle, Download, MessageCircle, Mail, ArrowRight } from 'lucide-react';
 
 const OrderSuccess: React.FC = () => {
   const location = useLocation();
