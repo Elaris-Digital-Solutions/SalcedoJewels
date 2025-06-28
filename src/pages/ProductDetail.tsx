@@ -155,27 +155,27 @@ const ProductDetail: React.FC = () => {
               <div className="space-y-4">
                 {cartQuantity > 0 ? (
                   /* Product already in cart - show cart controls */
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="bg-beige-50 border border-beige-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-inter font-medium text-green-800">
+                      <span className="font-inter font-medium text-gray-800">
                         En tu carrito: {cartQuantity} {cartQuantity === 1 ? 'unidad' : 'unidades'}
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => handleUpdateCartQuantity(cartQuantity - 1)}
-                        className="p-2 bg-white border border-green-300 rounded-md hover:bg-green-50 transition-colors duration-200"
+                        className="p-2 bg-white border border-beige-300 rounded-md hover:bg-beige-50 transition-colors duration-200"
                       >
-                        <Minus className="h-4 w-4 text-green-600" />
+                        <Minus className="h-4 w-4 text-gray-600" />
                       </button>
-                      <span className="font-inter font-semibold text-green-800 min-w-[2rem] text-center">
+                      <span className="font-inter font-semibold text-gray-800 min-w-[2rem] text-center">
                         {cartQuantity}
                       </span>
                       <button
                         onClick={() => handleUpdateCartQuantity(cartQuantity + 1)}
-                        className="p-2 bg-white border border-green-300 rounded-md hover:bg-green-50 transition-colors duration-200"
+                        className="p-2 bg-white border border-beige-300 rounded-md hover:bg-beige-50 transition-colors duration-200"
                       >
-                        <Plus className="h-4 w-4 text-green-600" />
+                        <Plus className="h-4 w-4 text-gray-600" />
                       </button>
                     </div>
                   </div>
