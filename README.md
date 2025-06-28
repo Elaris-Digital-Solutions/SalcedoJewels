@@ -1,118 +1,187 @@
-# SALCEDO JEWELS - Joyería de Lujo
+# Salcedo Jewels - Joyería Elegante
 
-Bienvenido al repositorio de SALCEDO JEWELS, una aplicación web de e-commerce diseñada para exhibir y gestionar una exclusiva colección de joyería en oro italiano de 18k. Este proyecto combina una interfaz de usuario elegante con un panel de administración funcional para la gestión de productos.
+Una aplicación web moderna para mostrar y gestionar el catálogo de joyas de Salcedo Jewels, con un diseño elegante en tonos blancos, beige y dorado.
 
-## ✨ Características Principales
+## Características
 
-*   **Catálogo de Productos:** Explora una amplia gama de joyas con opciones de filtrado por categoría, precio y búsqueda.
-*   **Páginas de Detalle de Producto:** Visualiza información detallada de cada pieza, incluyendo múltiples imágenes y descripciones.
-*   **Secciones Informativas:** Páginas dedicadas a "Sobre Nosotros" y "Contacto" para una experiencia de usuario completa.
-*   **Panel de Administración:** Un área protegida para gestionar el inventario de productos (añadir, editar, eliminar).
-*   **Carga de Productos Automatizada (Planificada):** Soporte para la carga de productos mediante un código estructurado que referencia imágenes y descripciones almacenadas localmente en carpetas específicas (`/public/product-images` y `/public/product-descriptions`).
-*   **Diseño Responsivo:** Interfaz adaptada para una experiencia óptima en dispositivos de escritorio y móviles.
-*   **Estilo Elegante:** Diseño minimalista y sofisticado con una paleta de colores blanco, beige y dorado, implementado con Tailwind CSS.
+- **Diseño Elegante**: Interfaz minimalista con paleta de colores blanco, beige y dorado
+- **Catálogo de Productos**: Visualización de joyas con imágenes y descripciones detalladas
+- **Panel de Administración**: Gestión completa de productos con autenticación
+- **Registro Automático**: Sistema para registrar productos desde archivos
+- **Responsive Design**: Optimizado para dispositivos móviles y desktop
 
-## 🚀 Tecnologías Utilizadas
+## Nueva Funcionalidad: Registro Automático de Productos
 
-*   **React:** Biblioteca de JavaScript para construir interfaces de usuario.
-*   **TypeScript:** Superset de JavaScript que añade tipado estático.
-*   **React Router DOM:** Para la navegación declarativa en la aplicación.
-*   **Tailwind CSS:** Framework CSS para un desarrollo rápido y altamente personalizable.
-*   **Lucide React:** Colección de iconos personalizables y ligeros.
-*   **Vite:** Herramienta de construcción rápida para proyectos web modernos.
+### Estructura de Carpetas
 
-## 📦 Instalación
+El sistema utiliza dos carpetas principales para el registro automático de productos:
 
-Sigue estos pasos para configurar y ejecutar el proyecto en tu entorno local:
+```
+public/
+├── product-images/          # Imágenes de productos
+└── product-descriptions/    # Archivos de descripción (.txt)
+```
 
-1.  **Clona el repositorio:**
-    ```bash
-    git clone https://github.com/tu-usuario/salcedo-jewels.git
-    cd salcedo-jewels
-    ```
+### Formato de Archivos
 
-2.  **Instala las dependencias:**
-    ```bash
-    npm install
-    ```
+#### 1. Archivos de Descripción (.txt)
 
-3.  **Inicia el servidor de desarrollo:**
-    ```bash
-    npm run dev
-    ```
-    La aplicación se abrirá en tu navegador en `http://localhost:5173` (o un puerto similar).
-
-## 💡 Uso
-
-### Navegación General
-
-La aplicación cuenta con las siguientes rutas principales:
-
-*   `/`: Página de inicio.
-*   `/catalog`: Catálogo completo de productos.
-*   `/product/:id`: Detalles de un producto específico (ej. `/product/1`).
-*   `/about`: Información sobre Salcedo Jewels.
-*   `/contact`: Formulario e información de contacto.
-
-### Panel de Administración
-
-Para acceder al panel de administración:
-
-1.  Navega a la ruta `/admin`.
-2.  La contraseña por defecto para el acceso es: `salcedo2025`.
-
-#### Carga de Productos (Funcionalidad en desarrollo)
-
-El panel de administración está diseñado para soportar la carga de productos mediante un "código de producto" que referencia archivos locales.
-
-**Formato del Código de Producto:**
-`[Categoría_Número]-[NombreDelProductoSinEspacios]-[Precio]-[Imagen1.png],[Imagen2.png],[Imagen3.png]-[Descripcion.txt]`
+Los archivos deben seguir el formato: `[categoría]-[nombre]-[precio].txt`
 
 **Ejemplo:**
-`2-AretesMariposaConBrillantes-1449.9-aretes_mariposa_1.png,aretes_mariposa_2.png-aretes_mariposa.txt`
+```
+2-AretesMariposaConBrillantes-1449.9.txt
+```
 
-**Carpetas de Archivos:**
-Asegúrate de que tus archivos de imagen y descripción estén ubicados en las siguientes rutas dentro de la carpeta `public` de tu proyecto:
+**Contenido del archivo:**
+```
+Elegantes aretes en forma de mariposa elaborados en oro italiano de 18k, adornados con brillantes que capturan y reflejan la luz de manera espectacular. Diseño delicado y sofisticado perfecto para ocasiones especiales.
+```
 
-*   **Imágenes de Productos:** `/public/product-images/`
-*   **Descripciones de Productos:** `/public/product-descriptions/`
+#### 2. Imágenes de Productos
 
-Si un archivo referenciado en el código del producto no se encuentra en su ubicación esperada, el sistema te notificará.
+Las imágenes deben tener el mismo código base que el archivo de descripción:
 
-## 📂 Estructura del Proyecto
+**Ejemplo:**
+```
+2-AretesMariposaConBrillantes-1449.9-111.png
+2-AretesMariposaConBrillantes-1449.9-112.png
+2-AretesMariposaConBrillantes-1449.9-113.png
+```
 
-├── public/
+### Códigos de Categoría
 
-│   ├── product-images/  # Imágenes de los productos
+- `1` - Anillos
+- `2` - Aretes  
+- `3` - Collares
+- `4` - Pulseras
+- `5` - Conjuntos
 
-│   └── product-descriptions/ # Archivos .txt con descripciones
+### Proceso de Registro
 
-├── src/
+1. **Subir Archivos**: Coloca los archivos .txt en `/public/product-descriptions/` y las imágenes en `/public/product-images/`
 
-│   ├── assets/
+2. **Acceder al Panel Admin**: Inicia sesión en el panel de administración
 
-│   ├── components/      # Componentes reutilizables (Header, Footer, ProductCard, AdminLogin)
+3. **Ir a la Pestaña "Archivos"**: Verás una lista de productos pendientes de registro
 
-│   │   ├── Layout/
+4. **Validación Automática**: El sistema verifica que existan tanto la descripción como las imágenes
 
-│   │   └── ...
+5. **Registro**: Haz clic en "Registrar Productos Pendientes" para agregarlos al catálogo
 
-│   ├── context/         # Contextos de React (ProductContext, AuthContext)
+### Validaciones del Sistema
 
-│   ├── pages/           # Páginas principales de la aplicación (Home, Catalog, Admin, etc.)
+- ✅ **Archivo de descripción existe**
+- ✅ **Imágenes del producto existen**
+- ✅ **Formato de código válido**
+- ✅ **Producto no duplicado**
 
-│   ├── types/           # Definiciones de tipos de TypeScript
+### Mensajes de Error
 
-│   ├── App.tsx          # Componente principal de la aplicación
+El sistema mostrará avisos específicos cuando:
+- Falte el archivo de descripción
+- Falten las imágenes del producto
+- El formato del código sea inválido
+- El producto ya exista en el catálogo
 
-│   ├── main.tsx         # Punto de entrada de la aplicación
+## Instalación
 
-│   └── index.css        # Estilos globales de Tailwind CSS
+1. Clona el repositorio:
+```bash
+git clone [url-del-repositorio]
+cd SalcedoJewels
+```
 
-├── tailwind.config.js   # Configuración de Tailwind CSS
+2. Instala las dependencias:
+```bash
+npm install
+```
 
-├── package.json         # Dependencias y scripts del proyecto
+3. Inicia el servidor de desarrollo:
+```bash
+npm run dev
+```
 
-├── tsconfig.json        # Configuración de TypeScript
+4. Abre [http://localhost:5173](http://localhost:5173) en tu navegador
 
-└── vite.config.ts       # Configuración de Vite
+## Tecnologías Utilizadas
+
+- **React 18** con TypeScript
+- **Vite** para el bundling
+- **Tailwind CSS** para estilos
+- **React Router** para navegación
+- **Lucide React** para iconos
+- **Context API** para manejo de estado
+
+## Estructura del Proyecto
+
+```
+src/
+├── components/           # Componentes reutilizables
+│   ├── Layout/          # Componentes de layout
+│   ├── AdminLogin.tsx   # Formulario de login admin
+│   └── ProductCard.tsx  # Tarjeta de producto
+├── context/             # Contextos de React
+│   ├── AuthContext.tsx  # Manejo de autenticación
+│   └── ProductContext.tsx # Manejo de productos
+├── pages/               # Páginas de la aplicación
+│   ├── Home.tsx         # Página principal
+│   ├── Catalog.tsx      # Catálogo de productos
+│   ├── Admin.tsx        # Panel de administración
+│   └── ...
+├── services/            # Servicios y utilidades
+│   └── ProductFileService.ts # Servicio de archivos
+├── types/               # Definiciones de tipos TypeScript
+│   └── Product.ts       # Tipos de productos
+└── main.tsx            # Punto de entrada
+```
+
+## Uso del Panel de Administración
+
+### Acceso
+- URL: `/admin`
+- Credenciales: Configuradas en el contexto de autenticación
+
+### Funcionalidades
+
+1. **Subir Producto Manual**: Agregar productos uno por uno con código y descripción
+2. **Gestionar Archivos**: Ver y registrar productos desde archivos automáticamente
+3. **Gestionar Productos**: Editar, eliminar y ver todos los productos del catálogo
+
+### Pestañas del Panel
+
+- **Subir Producto**: Formulario manual para agregar productos
+- **Archivos**: Gestión automática de productos desde archivos
+- **Gestionar Productos**: Lista y edición de productos existentes
+
+## Personalización
+
+### Colores
+Los colores principales están definidos en `tailwind.config.js`:
+- `gold-500/600`: Dorado principal
+- `cream-25/50/100`: Beige claro
+- `beige-200/300`: Beige medio
+
+### Fuentes
+- **Playfair Display**: Títulos y elementos destacados
+- **Inter**: Texto general y navegación
+
+## Contribución
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+## Contacto
+
+Salcedo Jewels - [info@salcedojewels.com](mailto:info@salcedojewels.com)
+
+---
+
+Desarrollado con ❤️ para Salcedo Jewels 
