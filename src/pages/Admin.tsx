@@ -21,6 +21,7 @@ const Admin: React.FC = () => {
   const [productDescription, setProductDescription] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<{ filename: string, url: string }[]>([]);
 
   // Si no está autenticado, mostrar el formulario de login
   if (!isAuthenticated) {
@@ -70,9 +71,14 @@ const Admin: React.FC = () => {
       return;
     }
 
+    // Buscar las URLs de las imágenes subidas que coincidan con los nombres en el código
+    const imageUrls = parsedCode.images.map(imgName => {
+      const found = uploadedImages.find(img => img.filename === imgName);
+      return found ? found.url : '';
+    }).filter(Boolean);
+
     setIsUploading(true);
 
-    // Simulate upload delay
     setTimeout(() => {
       const newProduct: Product = {
         id: Date.now().toString(),
@@ -80,11 +86,8 @@ const Admin: React.FC = () => {
         price: parsedCode.price,
         category: parsedCode.category,
         description: productDescription,
-        mainImage: `https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=800`,
-        additionalImages: [
-          'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=800',
-          'https://images.pexels.com/photos/1721932/pexels-photo-1721932.jpeg?auto=compress&cs=tinysrgb&w=800'
-        ],
+        mainImage: imageUrls[0] || 'https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=800',
+        additionalImages: imageUrls.slice(1),
         featured: false,
         inStock: true
       };
@@ -92,6 +95,7 @@ const Admin: React.FC = () => {
       addProduct(newProduct);
       setProductCode('');
       setProductDescription('');
+      setUploadedImages([]);
       setIsUploading(false);
       alert('Producto agregado exitosamente');
     }, 2000);
@@ -142,7 +146,7 @@ const Admin: React.FC = () => {
           folder: 'salcedo-jewels/products',
           sources: ['local', 'url', 'camera'],
           cropping: false,
-          maxFileSize: 2000000,
+          maxFileSize: 8 * 1024 * 1024, // 8 MB
           clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
           maxFiles: 10
         },
@@ -229,9 +233,10 @@ const Admin: React.FC = () => {
             {/* Cloudinary Widget solo en la pestaña de subida */}
             <CloudinaryUploadWidget
               onUpload={(url, info) => {
-                // Aquí puedes guardar la URL en el estado, mostrar preview, etc.
-                // Por ejemplo, podrías hacer setProductImages([...productImages, url])
-                alert('Imagen subida: ' + url);
+                setUploadedImages((prev) => [
+                  ...prev,
+                  { filename: info.original_filename + '.' + info.format, url }
+                ]);
               }}
             />
             <div className="space-y-6">
