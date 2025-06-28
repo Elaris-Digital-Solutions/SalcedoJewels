@@ -13,6 +13,7 @@ import Contact from './pages/Contact';
 import Admin from './pages/Admin';
 import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
+import WhatsAppButton from './components/Cart/WhatsAppButton';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
                 </Routes>
               </main>
               <Footer />
+              <WhatsAppButton />
             </div>
           </Router>
         </CartProvider>

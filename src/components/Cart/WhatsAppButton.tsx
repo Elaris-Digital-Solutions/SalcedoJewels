@@ -2,7 +2,7 @@ import React from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useCart } from '../../context/CartContext';
 
-const WHATSAPP_NUMBER = '51915247319';
+const WHATSAPP_NUMBER = '51979004991';
 
 const WhatsAppButton: React.FC = () => {
   const { items, getTotalPrice } = useCart();

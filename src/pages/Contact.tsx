@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Instagram, Send, Clock } from 'lucide-react';
-import { FaEnvelope } from 'react-icons/fa';
+//import { FaEnvelope } from 'react-icons/fa';
 
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -152,7 +152,7 @@ const Contact: React.FC = () => {
 
           {/* Contact Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-8">
+            <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-8" id="contact-form">
               <h2 className="font-playfair text-2xl font-bold text-gray-900 mb-6">
                 Envíanos un Mensaje
               </h2>
@@ -251,7 +251,7 @@ const Contact: React.FC = () => {
 
                 <button
                   type="submit"
-                  className="w-full bg-gold-400 hover:bg-gold-500 text-white font-bold py-3 px-6 rounded transition-all duration-200 flex items-center justify-center"
+                  className="w-full bg-gold-500 hover:bg-gold-600 disabled:bg-gold-200 text-white font-bold py-3 px-6 rounded transition-all duration-200 flex items-center justify-center"
                   disabled={sending}
                 >
                   <Send className="h-5 w-5 mr-2" />
@@ -272,7 +272,20 @@ const Contact: React.FC = () => {
             ver nuestras piezas en persona y recibir asesoramiento experto.
           </p>
           <a
-            href="mailto:msalcedojewels@gmail.com"
+            href="#contact-form"
+            onClick={e => {
+              e.preventDefault();
+              const formSection = document.getElementById('contact-form');
+              if (formSection) {
+                formSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+              const subjectSelect = document.getElementById('subject');
+              if (subjectSelect) {
+                (subjectSelect as HTMLSelectElement).value = 'cita';
+                // Si usas useState, también actualiza el estado:
+                setFormData(prev => ({ ...prev, subject: 'cita' }));
+              }
+            }}
             className="inline-flex items-center bg-white text-gold-600 hover:bg-cream-50 px-8 py-3 rounded-md font-medium transition-colors duration-200 hover:shadow-lg"
           >
             Agendar cita

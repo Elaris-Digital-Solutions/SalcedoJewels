@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle, Download, MessageCircle, Mail, ArrowRight } from 'lucide-react';
 
 const OrderSuccess: React.FC = () => {
   const location = useLocation();
   const orderSummary = location.state?.orderSummary;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   if (!orderSummary) {
     return (
@@ -224,7 +228,7 @@ ${orderSummary.customer.firstName} ${orderSummary.customer.lastName}`;
           {/* Contact Actions */}
           <div className="space-y-4">
             <h3 className="font-playfair text-lg font-bold text-gray-900">
-              Contacta con nosotros directamente:
+            ¡Importante! Contacta con nosotros directamente para coordinar el pedido:
             </h3>
             
             <div className="flex flex-col sm:flex-row gap-4">
@@ -236,14 +240,6 @@ ${orderSummary.customer.firstName} ${orderSummary.customer.lastName}`;
               >
                 <MessageCircle className="h-5 w-5" />
                 <span>Enviar por WhatsApp</span>
-              </a>
-
-              <a
-                href={`mailto:msalcedojewels@gmail.com?subject=${generateEmailSubject()}&body=${generateEmailBody()}`}
-                className="flex items-center justify-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md font-medium transition-colors duration-200"
-              >
-                <Mail className="h-5 w-5" />
-                <span>Enviar por Email</span>
               </a>
             </div>
           </div>
