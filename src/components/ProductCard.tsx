@@ -41,7 +41,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-3 hover:bg-cream-50"
               >
                 {isInCart(product.id) ? (
-                  <Plus className="h-5 w-5 text-green-600" />
+                  <Plus className="h-5 w-5 text-gold-600 group-hover:text-gold-700" />
                 ) : (
                   <ShoppingBag className="h-5 w-5 text-gold-600" />
                 )}
@@ -65,9 +65,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         )}
         {isInCart(product.id) && product.inStock && (
           <div className="absolute bottom-3 left-3">
-            <span className="bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-              En carrito
-            </span>
+            <span className="absolute top-3 left-3 bg-beige-400 text-white text-xs font-semibold px-3 py-1 rounded-full shadow">En carrito</span>
           </div>
         )}
       </div>

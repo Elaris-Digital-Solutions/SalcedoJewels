@@ -11,6 +11,7 @@ import ProductDetail from './pages/ProductDetail';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Admin from './pages/Admin';
+import WhatsAppButton from './components/Cart/WhatsAppButton';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
                   <Route path="/admin" element={<Admin />} />
                 </Routes>
               </main>
+              <WhatsAppButton />
               <Footer />
             </div>
           </Router>

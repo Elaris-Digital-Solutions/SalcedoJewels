@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Instagram, Send, Clock } from 'lucide-react';
+import { FaEnvelope } from 'react-icons/fa';
 
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -9,20 +10,33 @@ const Contact: React.FC = () => {
     subject: '',
     message: ''
   });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', formData);
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
-    alert('Mensaje enviado. Nos pondremos en contacto contigo pronto.');
+    setSending(true);
+    setError('');
+    setSent(false);
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        setSent(true);
+        setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Error enviando el mensaje');
+      }
+    } catch (err) {
+      setError('Error enviando el mensaje');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -33,7 +47,7 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cream-25 pt-24 pb-12">
+    <div className="min-h-screen bg-cream-25 pt-24 pb-12 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
@@ -232,12 +246,16 @@ const Contact: React.FC = () => {
                   />
                 </div>
 
+                {sent && <div className="text-green-600 font-medium">¡Mensaje enviado correctamente!</div>}
+                {error && <div className="text-red-600 font-medium">{error}</div>}
+
                 <button
                   type="submit"
-                  className="w-full bg-gold-500 hover:bg-gold-600 text-white px-6 py-3 rounded-md font-medium transition-all duration-200 hover:shadow-lg flex items-center justify-center space-x-2"
+                  className="w-full bg-gold-400 hover:bg-gold-500 text-white font-bold py-3 px-6 rounded transition-all duration-200 flex items-center justify-center"
+                  disabled={sending}
                 >
-                  <Send className="h-5 w-5" />
-                  <span>Enviar mensaje</span>
+                  <Send className="h-5 w-5 mr-2" />
+                  {sending ? 'Enviando...' : 'Enviar mensaje'}
                 </button>
               </form>
             </div>
