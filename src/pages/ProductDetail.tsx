@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Heart, Share2, ShoppingBag, Truck, Shield, RotateCcw, CreditCard } from 'lucide-react';
+import { ArrowLeft, Heart, Share2, ShoppingBag, Truck, Shield, RotateCcw } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 
 const ProductDetail: React.FC = () => {
@@ -193,12 +193,6 @@ const ProductDetail: React.FC = () => {
                   <RotateCcw className="h-5 w-5 text-gold-500" />
                   <span className="font-inter text-sm text-gray-600">
                     Política de devolución de 30 días
-                  </span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CreditCard className="h-5 w-5 text-gold-500" />
-                  <span className="font-inter text-sm text-gray-600">
-                    Planes de pago flexibles disponibles
                   </span>
                 </div>
               </div>

@@ -20,59 +20,53 @@ const Header: React.FC = () => {
   return (
     <header className="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-beige-200 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center py-4 w-full">
-          {/* Logo SIEMPRE a la izquierda */}
-          <div className="flex-shrink-0">
-            <Link to="/" className="flex items-center">
-              <span className="font-playfair text-2xl font-bold text-gray-900">
-                SALCEDO
-              </span>
-            </Link>
-          </div>
+        <div className="flex justify-between items-center py-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <span className="font-playfair text-2xl font-bold text-gray-900">
+              SALCEDO
+            </span>
+          </Link>
 
-          {/* Navegación centrada (ocupa todo el espacio disponible) */}
-          <div className="flex-1 flex justify-center">
-            <nav className="hidden md:flex space-x-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  className={`font-inter text-sm font-medium transition-colors duration-200 ${
-                    isActive(item.path)
-                      ? 'text-gold-600 border-b-2 border-gold-500'
-                      : 'text-gray-700 hover:text-gold-600'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex space-x-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={`font-inter text-sm font-medium transition-colors duration-200 ${
+                  isActive(item.path)
+                    ? 'text-gold-600 border-b-2 border-gold-500'
+                    : 'text-gray-700 hover:text-gold-600'
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
 
           {/* Admin Link - Solo visible si está autenticado */}
           {isAuthenticated && (
             <Link
               to="/admin"
-              className="hidden md:inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gold-700 bg-cream-100 rounded-md hover:bg-cream-200 transition-colors duration-200 ml-4"
+              className="hidden md:inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gold-700 bg-cream-100 rounded-md hover:bg-cream-200 transition-colors duration-200"
             >
               <Shield className="h-4 w-4" />
               <span>Admin</span>
             </Link>
           )}
 
-          {/* Mobile menu button - Solo visible si está autenticado */}
-          {isAuthenticated && (
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 text-gray-700 hover:text-gold-600 ml-2"
-            >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          )}
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 text-gray-700 hover:text-gold-600"
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
 
-        {/* Mobile Navigation - Solo visible si está autenticado */}
-        {isAuthenticated && isMenuOpen && (
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
           <div className="md:hidden pb-4">
             <nav className="flex flex-col space-y-3">
               {navItems.map((item) => (
@@ -90,14 +84,16 @@ const Header: React.FC = () => {
                 </Link>
               ))}
               {/* Admin Link móvil - Solo visible si está autenticado */}
-              <Link
-                to="/admin"
-                onClick={() => setIsMenuOpen(false)}
-                className="font-inter text-sm font-medium py-2 px-4 text-gold-700 bg-cream-200 rounded-md hover:bg-cream-300 transition-colors duration-200 flex items-center space-x-2"
-              >
-                <Shield className="h-4 w-4" />
-                <span>Admin</span>
-              </Link>
+              {isAuthenticated && (
+                <Link
+                  to="/admin"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="font-inter text-sm font-medium py-2 px-4 text-gold-700 bg-cream-200 rounded-md hover:bg-cream-300 transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <Shield className="h-4 w-4" />
+                  <span>Admin</span>
+                </Link>
+              )}
             </nav>
           </div>
         )}

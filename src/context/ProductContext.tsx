@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Product } from '../types/Product';
-import { ProductFileService, ProductFileInfo } from '../services/ProductFileService';
 
 interface ProductContextType {
   products: Product[];
@@ -9,10 +8,6 @@ interface ProductContextType {
   deleteProduct: (id: string) => void;
   getProductById: (id: string) => Product | undefined;
   getFeaturedProducts: () => Product[];
-  getMostExpensiveProducts: (limit?: number) => Product[];
-  registerProductsFromFiles: () => Promise<{ success: number; errors: string[] }>;
-  getPendingProducts: () => Promise<ProductFileInfo[]>;
-  validateProductFiles: () => Promise<{ valid: ProductFileInfo[]; invalid: { code: string; issues: string[] }[] }>;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -103,83 +98,6 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     return products.filter(product => product.featured);
   };
 
-  const getMostExpensiveProducts = (limit: number = 3) => {
-    return [...products]
-      .sort((a, b) => b.price - a.price)
-      .slice(0, limit);
-  };
-
-  // New function to register products from files
-  const registerProductsFromFiles = async (): Promise<{ success: number; errors: string[] }> => {
-    try {
-      const validation = await ProductFileService.validateProductFiles();
-      const errors: string[] = [];
-      let successCount = 0;
-
-      // Register valid products
-      for (const fileInfo of validation.valid) {
-        const product = await ProductFileService.createProductFromFile(fileInfo);
-        if (product) {
-          // Check if product already exists (by name and category)
-          const existingProduct = products.find(p => 
-            p.name === product.name && p.category === product.category
-          );
-          
-          if (!existingProduct) {
-            addProduct(product);
-            successCount++;
-          } else {
-            errors.push(`Producto "${product.name}" ya existe en el catálogo`);
-          }
-        } else {
-          errors.push(`Error al crear producto desde archivo: ${fileInfo.code}`);
-        }
-      }
-
-      // Add errors for invalid products
-      for (const invalid of validation.invalid) {
-        errors.push(`Producto "${invalid.code}": ${invalid.issues.join(', ')}`);
-      }
-
-      return { success: successCount, errors };
-    } catch (error) {
-      console.error('Error registering products from files:', error);
-      return { success: 0, errors: ['Error interno del sistema'] };
-    }
-  };
-
-  // Get pending products (files that exist but aren't registered)
-  const getPendingProducts = async (): Promise<ProductFileInfo[]> => {
-    try {
-      const availableProducts = await ProductFileService.getAvailableProducts();
-      const registeredCodes = products.map(p => {
-        // Try to reconstruct the code from product data
-        const categoryMap: { [key: string]: string } = {
-          'Anillos': '1',
-          'Aretes': '2',
-          'Collares': '3',
-          'Pulseras': '4',
-          'Conjuntos': '5'
-        };
-        const categoryCode = Object.entries(categoryMap).find(([name]) => name === p.category)?.[1] || '0';
-        const nameCode = p.name.replace(/\s+/g, '');
-        return `${categoryCode}-${nameCode}-${p.price}`;
-      });
-
-      return availableProducts.filter(product => 
-        !registeredCodes.some(code => product.code.includes(code))
-      );
-    } catch (error) {
-      console.error('Error getting pending products:', error);
-      return [];
-    }
-  };
-
-  // Validate product files
-  const validateProductFiles = async () => {
-    return await ProductFileService.validateProductFiles();
-  };
-
   return (
     <ProductContext.Provider value={{
       products,
@@ -187,11 +105,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       updateProduct,
       deleteProduct,
       getProductById,
-      getFeaturedProducts,
-      getMostExpensiveProducts,
-      registerProductsFromFiles,
-      getPendingProducts,
-      validateProductFiles
+      getFeaturedProducts
     }}>
       {children}
     </ProductContext.Provider>
