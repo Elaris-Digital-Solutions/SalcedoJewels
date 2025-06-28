@@ -124,7 +124,7 @@ const Admin: React.FC = () => {
 
   // Cloudinary Upload Widget
   const CLOUD_NAME = 'dkxks0g3o';
-  const UPLOAD_PRESET = 'salcedo-jewels-direct'; // Cambia por el nombre real de tu preset
+  const UPLOAD_PRESET = 'salcedo-jewels-direct'; // <-- nombre actualizado del preset
 
   const CloudinaryUploadWidget: React.FC<{ onUpload: (url: string, info: any) => void }> = ({ onUpload }) => {
     React.useEffect(() => {
@@ -142,8 +142,8 @@ const Admin: React.FC = () => {
         {
           cloudName: CLOUD_NAME,
           uploadPreset: UPLOAD_PRESET,
-          multiple: true,
           folder: 'salcedo-jewels/products',
+          multiple: true,
           sources: ['local', 'url', 'camera'],
           cropping: false,
           maxFileSize: 8 * 1024 * 1024, 
