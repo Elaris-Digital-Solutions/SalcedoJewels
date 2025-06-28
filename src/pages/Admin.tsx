@@ -142,9 +142,9 @@ const Admin: React.FC = () => {
           folder: 'salcedo-jewels/products',
           sources: ['local', 'url', 'camera'],
           cropping: false,
-          maxFileSize: 2000000,
+          maxFileSize: 8 * 1024 * 1024, 
           clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-          maxFiles: 10
+          maxFiles: 50
         },
         (error: any, result: any) => {
           if (!error && result && result.event === 'success') {
