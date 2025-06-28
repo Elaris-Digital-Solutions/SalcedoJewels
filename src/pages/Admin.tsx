@@ -5,6 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { Product, ProductCode } from '../types/Product';
 import AdminLogin from '../components/AdminLogin';
 
+// Agregar declaración global para window.cloudinary
+// @ts-ignore
+declare global {
+  interface Window {
+    cloudinary?: any;
+  }
+}
+
 const Admin: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
   const { isAuthenticated, logout } = useAuth();
@@ -110,6 +118,54 @@ const Admin: React.FC = () => {
 
   const parsedCode = productCode ? parseProductCode(productCode) : null;
 
+  // Cloudinary Upload Widget
+  const CLOUD_NAME = 'dkxks0g3o';
+  const UPLOAD_PRESET = 'salcedo-jewels-direct'; // Cambia por el nombre real de tu preset
+
+  const CloudinaryUploadWidget: React.FC<{ onUpload: (url: string, info: any) => void }> = ({ onUpload }) => {
+    React.useEffect(() => {
+      if (!window.cloudinary) {
+        const script = document.createElement('script');
+        script.src = 'https://widget.cloudinary.com/v2.0/global/all.js';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+    }, []);
+
+    const openWidget = () => {
+      if (!window.cloudinary) return;
+      const widget = window.cloudinary.createUploadWidget(
+        {
+          cloudName: CLOUD_NAME,
+          uploadPreset: UPLOAD_PRESET,
+          multiple: true,
+          folder: 'salcedo-jewels/products',
+          sources: ['local', 'url', 'camera'],
+          cropping: false,
+          maxFileSize: 2000000,
+          clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+          maxFiles: 10
+        },
+        (error: any, result: any) => {
+          if (!error && result && result.event === 'success') {
+            onUpload(result.info.secure_url, result.info);
+          }
+        }
+      );
+      widget.open();
+    };
+
+    return (
+      <button
+        type="button"
+        onClick={openWidget}
+        className="bg-gold-500 text-white px-4 py-2 rounded mb-4"
+      >
+        Subir imágenes a Cloudinary
+      </button>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -170,7 +226,14 @@ const Admin: React.FC = () => {
             <h2 className="font-playfair text-2xl font-bold text-gray-900 mb-6">
               Subir Nuevo Producto
             </h2>
-            
+            {/* Cloudinary Widget solo en la pestaña de subida */}
+            <CloudinaryUploadWidget
+              onUpload={(url, info) => {
+                // Aquí puedes guardar la URL en el estado, mostrar preview, etc.
+                // Por ejemplo, podrías hacer setProductImages([...productImages, url])
+                alert('Imagen subida: ' + url);
+              }}
+            />
             <div className="space-y-6">
               {/* Product Code Input */}
               <div>
