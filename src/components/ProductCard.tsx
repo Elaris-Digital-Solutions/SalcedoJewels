@@ -1,13 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Eye } from 'lucide-react';
+import { Eye, ShoppingBag, Plus } from 'lucide-react';
 import { Product } from '../types/Product';
+import { useCart } from '../context/CartContext';
 
 interface ProductCardProps {
   product: Product;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const { addToCart, isInCart } = useCart();
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.inStock) {
+      addToCart(product);
+    }
+  };
+
   return (
     <div className="group bg-white rounded-lg overflow-hidden shadow-sm border border-beige-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
       <div className="relative aspect-square overflow-hidden">
@@ -17,12 +28,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-          <Link
-            to={`/product/${product.id}`}
-            className="opacity-0 group-hover:opacity-100 bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-3 transform scale-75 group-hover:scale-100 transition-all duration-300 hover:bg-cream-50"
-          >
-            <Eye className="h-5 w-5 text-gold-600" />
-          </Link>
+          <div className="opacity-0 group-hover:opacity-100 flex space-x-2 transform scale-75 group-hover:scale-100 transition-all duration-300">
+            <Link
+              to={`/product/${product.id}`}
+              className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-3 hover:bg-cream-50"
+            >
+              <Eye className="h-5 w-5 text-gold-600" />
+            </Link>
+            {product.inStock && (
+              <button
+                onClick={handleAddToCart}
+                className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-3 hover:bg-cream-50"
+              >
+                {isInCart(product.id) ? (
+                  <Plus className="h-5 w-5 text-green-600" />
+                ) : (
+                  <ShoppingBag className="h-5 w-5 text-gold-600" />
+                )}
+              </button>
+            )}
+          </div>
         </div>
         {product.featured && (
           <div className="absolute top-3 left-3">
@@ -35,6 +60,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="absolute top-3 right-3">
             <span className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full">
               Agotado
+            </span>
+          </div>
+        )}
+        {isInCart(product.id) && product.inStock && (
+          <div className="absolute bottom-3 left-3">
+            <span className="bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+              En carrito
             </span>
           </div>
         )}
@@ -56,12 +88,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <span className="font-playfair text-xl font-bold text-gold-600">
             ${product.price.toLocaleString()}
           </span>
-          <Link
-            to={`/product/${product.id}`}
-            className="bg-gold-500 hover:bg-gold-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 hover:shadow-md"
-          >
-            Ver detalles
-          </Link>
+          <div className="flex space-x-2">
+            {product.inStock && (
+              <button
+                onClick={handleAddToCart}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                  isInCart(product.id)
+                    ? 'bg-green-500 hover:bg-green-600 text-white'
+                    : 'bg-gold-500 hover:bg-gold-600 text-white'
+                }`}
+              >
+                {isInCart(product.id) ? 'Agregado' : 'Agregar'}
+              </button>
+            )}
+            <Link
+              to={`/product/${product.id}`}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+            >
+              Ver
+            </Link>
+          </div>
         </div>
       </div>
     </div>

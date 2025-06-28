@@ -8,6 +8,7 @@ interface ProductContextType {
   deleteProduct: (id: string) => void;
   getProductById: (id: string) => Product | undefined;
   getFeaturedProducts: () => Product[];
+  getMostExpensiveProducts: (limit?: number) => Product[];
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -98,6 +99,12 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     return products.filter(product => product.featured);
   };
 
+  const getMostExpensiveProducts = (limit: number = 3) => {
+    return [...products]
+      .sort((a, b) => b.price - a.price)
+      .slice(0, limit);
+  };
+
   return (
     <ProductContext.Provider value={{
       products,
@@ -105,7 +112,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       updateProduct,
       deleteProduct,
       getProductById,
-      getFeaturedProducts
+      getFeaturedProducts,
+      getMostExpensiveProducts
     }}>
       {children}
     </ProductContext.Provider>
