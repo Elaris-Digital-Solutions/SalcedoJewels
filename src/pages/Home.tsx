@@ -5,8 +5,8 @@ import { useProducts } from '../context/ProductContext';
 import ProductCard from '../components/ProductCard';
 
 const Home: React.FC = () => {
-  const { getFeaturedProducts } = useProducts();
-  const featuredProducts = getFeaturedProducts();
+  const { getMostExpensiveProducts } = useProducts();
+  const featuredProducts = getMostExpensiveProducts(3);
 
   return (
     <div className="min-h-screen">
@@ -99,7 +99,7 @@ const Home: React.FC = () => {
               Piezas Destacadas
             </h2>
             <p className="font-inter text-lg text-gray-600 max-w-2xl mx-auto">
-              Descubre nuestra selección especial de joyas más exclusivas
+              Descubre nuestras joyas más exclusivas y de mayor valor
             </p>
           </div>
           
