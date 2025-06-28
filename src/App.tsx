@@ -1,267 +1,46 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { CheckCircle, MessageCircle, Mail, ArrowRight } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ProductProvider } from './context/ProductContext';
+import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import Header from './components/Layout/Header';
+import Footer from './components/Layout/Footer';
+import Home from './pages/Home';
+import Catalog from './pages/Catalog';
+import ProductDetail from './pages/ProductDetail';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import Admin from './pages/Admin';
+import Checkout from './pages/Checkout';
+import OrderSuccess from './pages/OrderSuccess';
 
-const OrderSuccess: React.FC = () => {
-  const location = useLocation();
-  const orderSummary = location.state?.orderSummary;
-
-  if (!orderSummary) {
-    return (
-      <div className="min-h-screen bg-cream-25 pt-24 pb-12 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="font-playfair text-2xl font-bold text-gray-900 mb-4">
-            Pedido no encontrado
-          </h2>
-          <Link
-            to="/"
-            className="inline-flex items-center bg-gold-500 hover:bg-gold-600 text-white px-6 py-3 rounded-md font-medium transition-colors duration-200"
-          >
-            Volver al inicio
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const generateOrderNumber = () => {
-    return `SJ${Date.now().toString().slice(-8)}`;
-  };
-
-  const orderNumber = generateOrderNumber();
-
-  const generateWhatsAppMessage = () => {
-    const message = `¡Hola! He realizado un pedido en Salcedo Jewels:
-
-*Número de Pedido:* ${orderNumber}
-*Cliente:* ${orderSummary.customer.firstName} ${orderSummary.customer.lastName}
-*Email:* ${orderSummary.customer.email}
-*Teléfono:* ${orderSummary.customer.phone}
-*Dirección:* ${orderSummary.customer.address}, ${orderSummary.customer.city}
-
-*Productos:*
-${orderSummary.items.map((item: any) => 
-  `• ${item.product.name} (x${item.quantity}) - $${(item.product.price * item.quantity).toLocaleString()}`
-).join('\n')}
-
-*Total:* $${orderSummary.total.toLocaleString()}
-*Método de Pago:* ${
-  orderSummary.payment.method === 'transfer' ? 'Transferencia Bancaria' :
-  orderSummary.payment.method === 'card' ? 'Tarjeta de Crédito' : 'Pago en Efectivo'
-}
-
-Por favor, confirmen la disponibilidad y procedan con el siguiente paso. ¡Gracias!`;
-
-    return encodeURIComponent(message);
-  };
-
-  const generateEmailSubject = () => {
-    return encodeURIComponent(`Nuevo Pedido #${orderNumber} - Salcedo Jewels`);
-  };
-
-  const generateEmailBody = () => {
-    const body = `Estimado equipo de Salcedo Jewels,
-
-He realizado un nuevo pedido con los siguientes detalles:
-
-Número de Pedido: ${orderNumber}
-Fecha: ${orderSummary.orderDate}
-
-INFORMACIÓN DEL CLIENTE:
-- Nombre: ${orderSummary.customer.firstName} ${orderSummary.customer.lastName}
-- Email: ${orderSummary.customer.email}
-- Teléfono: ${orderSummary.customer.phone}
-- Dirección: ${orderSummary.customer.address}, ${orderSummary.customer.city}, ${orderSummary.customer.country}
-
-PRODUCTOS:
-${orderSummary.items.map((item: any) => 
-  `- ${item.product.name} (Cantidad: ${item.quantity}) - $${(item.product.price * item.quantity).toLocaleString()}`
-).join('\n')}
-
-TOTAL: $${orderSummary.total.toLocaleString()}
-
-MÉTODO DE PAGO: ${
-  orderSummary.payment.method === 'transfer' ? 'Transferencia Bancaria' :
-  orderSummary.payment.method === 'card' ? 'Tarjeta de Crédito' : 'Pago en Efectivo'
-}
-
-Por favor, confirmen la recepción de este pedido y procedan con los siguientes pasos.
-
-Saludos cordiales,
-${orderSummary.customer.firstName} ${orderSummary.customer.lastName}`;
-
-    return encodeURIComponent(body);
-  };
-
+function App() {
   return (
-    <div className="min-h-screen bg-cream-25 pt-24 pb-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Success Header */}
-        <div className="text-center mb-12">
-          <div className="bg-green-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="h-12 w-12 text-green-600" />
-          </div>
-          <h1 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
-            ¡Pedido Realizado con Éxito!
-          </h1>
-          <p className="font-inter text-lg text-gray-600 max-w-2xl mx-auto">
-            Gracias por tu compra. Hemos recibido tu pedido y nos pondremos en contacto contigo pronto.
-          </p>
-        </div>
-
-        {/* Order Details */}
-        <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-8 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {/* Order Info */}
-            <div>
-              <h2 className="font-playfair text-xl font-bold text-gray-900 mb-4">
-                Detalles del Pedido
-              </h2>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Número de Pedido:</span> #{orderNumber}</p>
-                <p><span className="font-medium">Fecha:</span> {orderSummary.orderDate}</p>
-                <p><span className="font-medium">Total:</span> <span className="font-bold text-gold-600">${orderSummary.total.toLocaleString()}</span></p>
-                <p><span className="font-medium">Método de Pago:</span> {
-                  orderSummary.payment.method === 'transfer' ? 'Transferencia Bancaria' :
-                  orderSummary.payment.method === 'card' ? 'Tarjeta de Crédito' : 'Pago en Efectivo'
-                }</p>
-              </div>
+    <AuthProvider>
+      <ProductProvider>
+        <CartProvider>
+          <Router>
+            <div className="min-h-screen bg-white">
+              <Header />
+              <main>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/catalog" element={<Catalog />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/order-success" element={<OrderSuccess />} />
+                </Routes>
+              </main>
+              <Footer />
             </div>
-
-            {/* Customer Info */}
-            <div>
-              <h2 className="font-playfair text-xl font-bold text-gray-900 mb-4">
-                Información de Entrega
-              </h2>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Nombre:</span> {orderSummary.customer.firstName} {orderSummary.customer.lastName}</p>
-                <p><span className="font-medium">Email:</span> {orderSummary.customer.email}</p>
-                <p><span className="font-medium">Teléfono:</span> {orderSummary.customer.phone}</p>
-                <p><span className="font-medium">Dirección:</span> {orderSummary.customer.address}</p>
-                <p><span className="font-medium">Ciudad:</span> {orderSummary.customer.city}, {orderSummary.customer.country}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Products */}
-          <div className="border-t border-beige-200 pt-6">
-            <h3 className="font-playfair text-lg font-bold text-gray-900 mb-4">
-              Productos Pedidos
-            </h3>
-            <div className="space-y-4">
-              {orderSummary.items.map((item: any) => (
-                <div key={item.product.id} className="flex items-center space-x-4 p-4 bg-cream-50 rounded-lg">
-                  <div className="w-16 h-16 bg-white rounded-md overflow-hidden flex-shrink-0">
-                    <img
-                      src={item.product.mainImage}
-                      alt={item.product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-inter font-medium text-gray-900">{item.product.name}</h4>
-                    <p className="font-inter text-sm text-gray-500">{item.product.category}</p>
-                    <p className="font-inter text-sm text-gray-600">Cantidad: {item.quantity}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-playfair font-bold text-gold-600">
-                      ${(item.product.price * item.quantity).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Next Steps */}
-        <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-8 mb-8">
-          <h2 className="font-playfair text-2xl font-bold text-gray-900 mb-6">
-            Próximos Pasos
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="p-6 bg-blue-50 rounded-lg border border-blue-200">
-              <h3 className="font-inter font-semibold text-blue-900 mb-3">1. Confirmación</h3>
-              <p className="font-inter text-sm text-blue-700">
-                Nos pondremos en contacto contigo en las próximas 2-4 horas para confirmar 
-                la disponibilidad de los productos y coordinar los detalles.
-              </p>
-            </div>
-
-            <div className="p-6 bg-green-50 rounded-lg border border-green-200">
-              <h3 className="font-inter font-semibold text-green-900 mb-3">2. Pago</h3>
-              <p className="font-inter text-sm text-green-700">
-                {orderSummary.payment.method === 'transfer' && 
-                  'Te enviaremos los datos bancarios para realizar la transferencia.'
-                }
-                {orderSummary.payment.method === 'card' && 
-                  'Procesaremos el pago de tu tarjeta una vez confirmada la disponibilidad.'
-                }
-                {orderSummary.payment.method === 'cash' && 
-                  'Coordinaremos la entrega y el pago en efectivo.'
-                }
-              </p>
-            </div>
-
-            <div className="p-6 bg-purple-50 rounded-lg border border-purple-200">
-              <h3 className="font-inter font-semibold text-purple-900 mb-3">3. Preparación</h3>
-              <p className="font-inter text-sm text-purple-700">
-                Una vez confirmado el pago, prepararemos cuidadosamente tu pedido 
-                con el embalaje de lujo que caracteriza a Salcedo Jewels.
-              </p>
-            </div>
-
-            <div className="p-6 bg-gold-50 rounded-lg border border-gold-200">
-              <h3 className="font-inter font-semibold text-gold-900 mb-3">4. Entrega</h3>
-              <p className="font-inter text-sm text-gold-700">
-                Te notificaremos cuando tu pedido esté en camino y te proporcionaremos 
-                información de seguimiento para que puedas rastrear tu entrega.
-              </p>
-            </div>
-          </div>
-
-          {/* Contact Actions */}
-          <div className="space-y-4">
-            <h3 className="font-playfair text-lg font-bold text-gray-900">
-              Contacta con nosotros directamente:
-            </h3>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a
-                href={`https://wa.me/51979004991?text=${generateWhatsAppMessage()}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-md font-medium transition-colors duration-200"
-              >
-                <MessageCircle className="h-5 w-5" />
-                <span>Enviar por WhatsApp</span>
-              </a>
-
-              <a
-                href={`mailto:msalcedojewels@gmail.com?subject=${generateEmailSubject()}&body=${generateEmailBody()}`}
-                className="flex items-center justify-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md font-medium transition-colors duration-200"
-              >
-                <Mail className="h-5 w-5" />
-                <span>Enviar por Email</span>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Continue Shopping */}
-        <div className="text-center">
-          <Link
-            to="/catalog"
-            className="inline-flex items-center space-x-2 bg-gold-500 hover:bg-gold-600 text-white px-8 py-3 rounded-md font-medium transition-colors duration-200 hover:shadow-lg"
-          >
-            <span>Continuar Comprando</span>
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-        </div>
-      </div>
-    </div>
+          </Router>
+        </CartProvider>
+      </ProductProvider>
+    </AuthProvider>
   );
-};
+}
 
-export default OrderSuccess;
+export default App;
