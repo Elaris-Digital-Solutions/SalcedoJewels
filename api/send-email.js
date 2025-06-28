@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
 
   const mailOptions = {
     from: 'contacto.mbsolutions@gmail.com',
-    to: 'fabriziobussalleu@gmail.com',
+    to: 'msalcedojewels@gmail.com',
     subject: `[Salcedo Jewels] ${subject}`,
     text: `Nombre: ${name}\nCorreo: ${email}\nTeléfono: ${phone}\nAsunto: ${subject}\nMensaje: ${message}`
   };
