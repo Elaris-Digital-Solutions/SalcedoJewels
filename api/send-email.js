@@ -1,15 +1,14 @@
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
-// Configura el transporte con tu cuenta de Gmail (usa App Password si tienes 2FA)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: 'contacto.mbsolutions@gmail.com',
-    pass: process.env.GMAIL_APP_PASSWORD // Debes definir esta variable en Vercel
+    pass: process.env.GMAIL_APP_PASSWORD
   }
 });
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
@@ -34,4 +33,4 @@ module.exports = async (req, res) => {
     console.error('Error enviando correo:', error);
     return res.status(500).json({ error: 'Error enviando correo' });
   }
-}; 
+}
