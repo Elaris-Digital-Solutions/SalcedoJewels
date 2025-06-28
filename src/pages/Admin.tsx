@@ -146,7 +146,7 @@ const Admin: React.FC = () => {
           multiple: true,
           sources: ['local', 'url', 'camera'],
           cropping: false,
-          maxFileSize: 8 * 1024 * 1024, // 8 MB
+          maxFileSize: 8 * 1024 * 1024, 
           clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
           maxFiles: 50
         },
