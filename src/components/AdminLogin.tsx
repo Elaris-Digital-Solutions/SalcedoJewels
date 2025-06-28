@@ -1,0 +1,115 @@
+import React, { useState } from 'react';
+import { Lock, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+
+interface AdminLoginProps {
+  onLogin: () => void;
+}
+
+const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    // Simular un pequeño delay para la autenticación
+    setTimeout(() => {
+      const success = login(password);
+      if (success) {
+        onLogin();
+      } else {
+        setError('Contraseña incorrecta');
+        setPassword('');
+      }
+      setIsLoading(false);
+    }, 500);
+  };
+
+  return (
+    <div className="min-h-screen bg-cream-25 pt-24 pb-12 flex items-center justify-center">
+      <div className="max-w-md w-full mx-auto px-4">
+        <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="bg-cream-200 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <Lock className="h-8 w-8 text-gold-600" />
+            </div>
+            <h1 className="font-playfair text-2xl font-bold text-gray-900 mb-2">
+              Acceso Administrativo
+            </h1>
+            <p className="font-inter text-gray-600">
+              Ingresa la contraseña para acceder al panel de administración
+            </p>
+          </div>
+
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="password" className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                Contraseña
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className={`w-full px-4 py-3 pr-12 border rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-colors duration-200 ${
+                    error ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="Ingresa tu contraseña"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              {error && (
+                <p className="mt-2 text-sm text-red-600">
+                  {error}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={!password || isLoading}
+              className="w-full bg-gold-500 hover:bg-gold-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Verificando...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="h-5 w-5" />
+                  <span>Acceder</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Info */}
+          <div className="mt-6 p-4 bg-cream-100 rounded-lg">
+            <p className="font-inter text-sm text-gray-600 text-center">
+              Solo el personal autorizado puede acceder a esta sección
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminLogin;
