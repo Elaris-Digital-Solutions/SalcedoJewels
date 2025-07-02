@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
-import { Search, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, ArrowUpDown } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
+import { useScrollPosition, useFilterPersistence } from '../hooks/useScrollPosition';
 import ProductCard from '../components/ProductCard';
 
 const Catalog: React.FC = () => {
   const { products } = useProducts();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [priceRange, setPriceRange] = useState('');
+  const { saveFilters, loadFilters, clearSavedFilters } = useFilterPersistence();
+  
+  // Load saved filters on component mount
+  const savedFilters = loadFilters();
+  const [searchTerm, setSearchTerm] = useState(savedFilters.searchTerm);
+  const [selectedCategory, setSelectedCategory] = useState(savedFilters.selectedCategory);
+  const [priceRange, setPriceRange] = useState(savedFilters.priceRange);
+  const [sortBy, setSortBy] = useState(savedFilters.sortBy);
+  
+  const catalogRef = useScrollPosition();
 
   const categories = Array.from(new Set(products.map(product => product.category)));
+
+  // Save filters whenever they change
+  useEffect(() => {
+    saveFilters({
+      searchTerm,
+      selectedCategory,
+      priceRange,
+      sortBy
+    });
+  }, [searchTerm, selectedCategory, priceRange, sortBy, saveFilters]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -20,17 +38,17 @@ const Catalog: React.FC = () => {
     if (priceRange) {
       const price = product.price;
       switch (priceRange) {
-        case 'under-1000':
-          matchesPrice = price < 1000;
+        case 'under-500':
+          matchesPrice = price < 500;
           break;
-        case '1000-2000':
-          matchesPrice = price >= 1000 && price < 2000;
+        case '500-1000':
+          matchesPrice = price >= 500 && price < 1000;
           break;
-        case '2000-3000':
-          matchesPrice = price >= 2000 && price < 3000;
+        case '1000-1500':
+          matchesPrice = price >= 1000 && price < 1500;
           break;
-        case 'over-3000':
-          matchesPrice = price >= 3000;
+        case 'over-1500':
+          matchesPrice = price >= 1500;
           break;
       }
     }
@@ -38,8 +56,32 @@ const Catalog: React.FC = () => {
     return matchesSearch && matchesCategory && matchesPrice;
   });
 
+  // Sort products based on selected sort option
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case 'price-asc':
+        return a.price - b.price;
+      case 'price-desc':
+        return b.price - a.price;
+      case 'name-asc':
+        return a.name.localeCompare(b.name);
+      case 'name-desc':
+        return b.name.localeCompare(a.name);
+      default:
+        return 0;
+    }
+  });
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('');
+    setPriceRange('');
+    setSortBy('');
+    clearSavedFilters();
+  };
+
   return (
-    <div className="min-h-screen bg-cream-25 pt-24 pb-12">
+    <div ref={catalogRef} className="min-h-screen bg-cream-25 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -53,7 +95,7 @@ const Catalog: React.FC = () => {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -85,19 +127,28 @@ const Catalog: React.FC = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
             >
               <option value="">Todos los precios</option>
-              <option value="under-1000">Menos de $1,000</option>
-              <option value="1000-2000">$1,000 - $2,000</option>
-              <option value="2000-3000">$2,000 - $3,000</option>
-              <option value="over-3000">Más de $3,000</option>
+              <option value="under-500">Menos de $500</option>
+              <option value="500-1000">$500 - $1,000</option>
+              <option value="1000-1500">$1,000 - $1,500</option>
+              <option value="over-1500">Más de $1,500</option>
+            </select>
+
+            {/* Sort Filter */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+            >
+              <option value="">Ordenar por</option>
+              <option value="price-asc">Precio: Menor a Mayor</option>
+              <option value="price-desc">Precio: Mayor a Menor</option>
+              <option value="name-asc">Nombre: A-Z</option>
+              <option value="name-desc">Nombre: Z-A</option>
             </select>
 
             {/* Clear Filters */}
             <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('');
-                setPriceRange('');
-              }}
+              onClick={handleClearFilters}
               className="flex items-center justify-center space-x-2 px-4 py-2 border border-beige-300 text-gold-600 rounded-md hover:bg-cream-50 transition-colors duration-200"
             >
               <Filter className="h-4 w-4" />
@@ -109,14 +160,14 @@ const Catalog: React.FC = () => {
         {/* Results Count */}
         <div className="mb-6">
           <p className="font-inter text-gray-600">
-            Mostrando {filteredProducts.length} de {products.length} productos
+            Mostrando {sortedProducts.length} de {products.length} productos
           </p>
         </div>
 
         {/* Products Grid */}
-        {filteredProducts.length > 0 ? (
+        {sortedProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProducts.map((product) => (
+            {sortedProducts.map((product) => (
               <div key={product.id} className="animate-fade-in">
                 <ProductCard product={product} />
               </div>
@@ -135,11 +186,7 @@ const Catalog: React.FC = () => {
                 Intenta ajustar los filtros o buscar con términos diferentes
               </p>
               <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedCategory('');
-                  setPriceRange('');
-                }}
+                onClick={handleClearFilters}
                 className="bg-gold-500 hover:bg-gold-600 text-white px-6 py-2 rounded-md font-medium transition-colors duration-200"
               >
                 Ver todos los productos
