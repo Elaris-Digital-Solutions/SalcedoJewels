@@ -1,13 +1,15 @@
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
-export default function handler(req, res) {
-  const dir = path.join(process.cwd(), 'public', 'product-descriptions');
-  let files = [];
-  try {
-    files = fs.readdirSync(dir).filter(f => f.endsWith('.txt'));
-  } catch (e) {
-    return res.status(500).json({ error: 'No se pudo leer la carpeta.' });
+module.exports = async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ success: false, error: 'Método no permitido' });
   }
-  res.status(200).json({ files });
+  try {
+    // Simula la lectura de descripciones
+    return res.status(200).json({ success: true, descriptions: [] });
+  } catch (error) {
+    console.error('[LIST-DESCRIPTIONS] Error:', error);
+    return res.status(500).json({ success: false, error: 'Error listando descripciones', message: error.message });
+  }
 } 

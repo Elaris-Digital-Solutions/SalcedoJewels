@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, User, MapPin, Phone, Mail, Calendar, Lock } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, User, MapPin, Phone, Mail, Calendar, Lock, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import NiubizPayment from '../components/NiubizPayment';
 
 interface CustomerData {
   firstName: string;
@@ -15,11 +16,12 @@ interface CustomerData {
 }
 
 interface PaymentData {
-  method: 'transfer' | 'cash';
+  method: 'transfer' | 'cash' | 'card';
   cardNumber: string;
   expiryDate: string;
   cvv: string;
   cardName: string;
+  currency?: 'PEN' | 'USD';
 }
 
 const Checkout: React.FC = () => {
@@ -44,10 +46,13 @@ const Checkout: React.FC = () => {
     cardNumber: '',
     expiryDate: '',
     cvv: '',
-    cardName: ''
+    cardName: '',
+    currency: 'PEN'
   });
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showNiubizPayment, setShowNiubizPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Redirect if cart is empty
   if (items.length === 0) {
@@ -91,6 +96,9 @@ const Checkout: React.FC = () => {
     if (paymentData.method === 'transfer' || paymentData.method === 'cash') {
       return true;
     }
+    if (paymentData.method === 'card') {
+      return true; // La validación se hace en el componente NiubizPayment
+    }
     return paymentData.cardNumber && paymentData.expiryDate && paymentData.cvv && paymentData.cardName;
   };
 
@@ -98,7 +106,11 @@ const Checkout: React.FC = () => {
     if (currentStep === 1 && validateStep1()) {
       setCurrentStep(2);
     } else if (currentStep === 2 && validateStep2()) {
-      setCurrentStep(3);
+      if (paymentData.method === 'card') {
+        setShowNiubizPayment(true);
+      } else {
+        setCurrentStep(3);
+      }
     }
   };
 
@@ -106,6 +118,27 @@ const Checkout: React.FC = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  // Manejar éxito del pago con Niubiz
+  const handleNiubizSuccess = (transactionData: any) => {
+    console.log('Pago exitoso con Niubiz:', transactionData);
+    setShowNiubizPayment(false);
+    setPaymentError(null);
+    setCurrentStep(3);
+  };
+
+  // Manejar error del pago con Niubiz
+  const handleNiubizError = (error: string) => {
+    console.error('Error en pago con Niubiz:', error);
+    setPaymentError(error);
+    setShowNiubizPayment(false);
+  };
+
+  // Cancelar pago con Niubiz
+  const handleNiubizCancel = () => {
+    setShowNiubizPayment(false);
+    setPaymentError(null);
   };
 
   const handleSubmitOrder = async () => {
@@ -128,7 +161,7 @@ const Checkout: React.FC = () => {
       };
 
       // Enviar correo a msalcedojewels@gmail.com
-      const orderMessage = `\nNuevo pedido en Salcedo Jewels\n\nCliente: ${customerData.firstName} ${customerData.lastName}\nEmail: ${customerData.email}\nTeléfono: ${customerData.phone}\nDirección: ${customerData.address}, ${customerData.city}, ${customerData.country}\n\nProductos:\n${items.map(item => `• ${item.product.name} (x${item.quantity}) - S/ ${item.product.price.toLocaleString()}`).join('\n')}\n\nTotal: S/ ${getTotalPrice().toLocaleString()}\nMétodo de Pago: ${paymentData.method === 'transfer' ? 'Transferencia Bancaria' : 'Pago en Efectivo'}\n\nPor favor, confirmen la recepción de este pedido y procedan con los siguientes pasos.\n`;
+      const orderMessage = `\nNuevo pedido en Salcedo Jewels\n\nCliente: ${customerData.firstName} ${customerData.lastName}\nEmail: ${customerData.email}\nTeléfono: ${customerData.phone}\nDirección: ${customerData.address}, ${customerData.city}, ${customerData.country}\n\nProductos:\n${items.map(item => `• ${item.product.name} (x${item.quantity}) - S/ ${item.product.price.toLocaleString()}`).join('\n')}\n\nTotal: S/ ${getTotalPrice().toLocaleString()}\nMétodo de Pago: ${paymentData.method === 'transfer' ? 'Transferencia Bancaria' : paymentData.method === 'card' ? 'Tarjeta de Crédito/Débito' : 'Pago en Efectivo'}\n\nPor favor, confirmen la recepción de este pedido y procedan con los siguientes pasos.\n`;
 
       await fetch('/api/send-email', {
         method: 'POST',
@@ -376,6 +409,21 @@ const Checkout: React.FC = () => {
                       <input
                         type="radio"
                         name="paymentMethod"
+                        value="card"
+                        checked={paymentData.method === 'card'}
+                        onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
+                        className="text-gold-500 focus:ring-gold-500"
+                      />
+                      <div className="ml-3">
+                        <div className="font-inter font-medium text-gray-900">Tarjeta de Crédito/Débito</div>
+                        <div className="font-inter text-sm text-gray-500">Pago seguro con Visa, Mastercard, American Express</div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-cream-50 transition-colors duration-200">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
                         value="cash"
                         checked={paymentData.method === 'cash'}
                         onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
@@ -387,6 +435,47 @@ const Checkout: React.FC = () => {
                       </div>
                     </label>
                   </div>
+
+                  {/* Currency Selection for Card Payments */}
+                  {paymentData.method === 'card' && (
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h3 className="font-inter font-semibold text-blue-900 mb-3">Seleccionar Moneda</h3>
+                      <div className="space-y-2">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="currency"
+                            value="PEN"
+                            checked={paymentData.currency === 'PEN'}
+                            onChange={(e) => handlePaymentDataChange('currency', e.target.value as any)}
+                            className="text-gold-500 focus:ring-gold-500"
+                          />
+                          <span className="ml-2 font-inter text-sm">Pagar en Soles (PEN)</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="currency"
+                            value="USD"
+                            checked={paymentData.currency === 'USD'}
+                            onChange={(e) => handlePaymentDataChange('currency', e.target.value as any)}
+                            className="text-gold-500 focus:ring-gold-500"
+                          />
+                          <span className="ml-2 font-inter text-sm">Pagar en Dólares (USD)</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error Message */}
+                  {paymentError && (
+                    <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                      <div className="flex items-center space-x-2">
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                        <span className="font-inter text-sm text-red-700">{paymentError}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -420,6 +509,7 @@ const Checkout: React.FC = () => {
                     <h3 className="font-inter font-semibold text-gray-900 mb-3">Método de Pago</h3>
                     <p className="text-sm">
                       {paymentData.method === 'transfer' && 'Transferencia Bancaria'}
+                      {paymentData.method === 'card' && `Tarjeta de Crédito/Débito (${paymentData.currency})`}
                       {paymentData.method === 'cash' && 'Pago en Efectivo'}
                     </p>
                   </div>
@@ -569,6 +659,25 @@ const Checkout: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Niubiz Payment Modal */}
+      {showNiubizPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <NiubizPayment
+                amount={total}
+                currency={paymentData.currency || 'PEN'}
+                orderId={`order_${Date.now()}`}
+                customerEmail={customerData.email}
+                onSuccess={handleNiubizSuccess}
+                onError={handleNiubizError}
+                onCancel={handleNiubizCancel}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
