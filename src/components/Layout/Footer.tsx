@@ -82,7 +82,15 @@ const Footer: React.FC = () => {
 
         <div className="mt-8 pt-8 border-t border-beige-200">
           <p className="font-inter text-center text-sm text-gray-600">
-            © 2025 Salcedo Jewels. Todos los derechos reservados.
+            © 2025 Salcedo Jewels. Todos los derechos reservados. Desarrollado por{' '}
+            <a
+              href="https://www.instagram.com/elarisdigitalsolutions/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gold-600 hover:underline"
+            >
+              Elaris Digital Solutions
+            </a>.
           </p>
         </div>
       </div>
