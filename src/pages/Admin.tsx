@@ -31,6 +31,13 @@ const Admin: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Product variants / stock state (must be declared before any early returns)
+  const [hasVariants, setHasVariants] = useState(false);
+  const [stock, setStock] = useState(1);
+  const [variants, setVariants] = useState<{size: string, stock: number}[]>([]);
+  const [newVariantSize, setNewVariantSize] = useState('');
+  const [newVariantStock, setNewVariantStock] = useState(1);
+
   useEffect(() => {
     if (activeTab === 'orders') {
       fetchOrders();
@@ -115,12 +122,6 @@ const Admin: React.FC = () => {
       return null;
     }
   };
-
-  const [hasVariants, setHasVariants] = useState(false);
-  const [stock, setStock] = useState(1);
-  const [variants, setVariants] = useState<{size: string, stock: number}[]>([]);
-  const [newVariantSize, setNewVariantSize] = useState('');
-  const [newVariantStock, setNewVariantStock] = useState(1);
 
   const handleAddVariant = () => {
     if (newVariantSize && newVariantStock > 0) {
