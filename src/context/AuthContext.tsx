@@ -1,34 +1,51 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../supabaseClient';
+import { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (password: string) => boolean;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ error: any }>;
+  logout: () => Promise<void>;
+  user: any | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Contraseña simple para el admin (en producción esto debería estar en el backend)
-const ADMIN_PASSWORD = 'salcedo2025';
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
-  const login = (password: string): boolean => {
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      return true;
-    }
-    return false;
+  useEffect(() => {
+    // Obtener sesión inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Escuchar cambios en la autenticación
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { error };
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
     <AuthContext.Provider value={{
-      isAuthenticated,
+      isAuthenticated: !!session,
+      user: session?.user,
       login,
       logout
     }}>

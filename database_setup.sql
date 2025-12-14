@@ -52,3 +52,21 @@ create policy "Pedidos consultables por código"
 create policy "Cualquiera puede crear pedidos"
   on orders for insert
   with check (true);
+
+-- Permitir actualizar pedidos (necesario para que el Admin cambie el estado)
+create policy "Permitir actualizar pedidos"
+  on orders for update
+  using (true)
+  with check (true);
+
+-- Permitir gestión total de productos (para el Admin)
+create policy "Permitir gestión de productos"
+  on products
+  for all
+  using (true)
+  with check (true);
+
+-- Permitir inserción de pedidos a cualquiera (anon)
+create policy "Cualquiera puede crear pedidos"
+  on orders for insert
+  with check (true);

@@ -94,9 +94,9 @@ const Admin: React.FC = () => {
       }
       
       alert('Estado actualizado correctamente');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating status:', error);
-      alert('Error al actualizar el estado');
+      alert(`Error al actualizar el estado: ${error.message || 'Error desconocido'}`);
     }
   };
 
@@ -676,29 +676,163 @@ const Admin: React.FC = () => {
                       {editingProduct?.id === product.id ? (
                         // Edit Mode
                         <div className="space-y-3">
-                          <input
-                            type="text"
-                            value={editingProduct.name}
-                            onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                          />
-                          <input
-                            type="number"
-                            value={editingProduct.price}
-                            onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                          />
-                          <select
-                            value={editingProduct.category}
-                            onChange={(e) => setEditingProduct({...editingProduct, category: e.target.value})}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                          >
-                            <option value="Anillos">Anillos</option>
-                            <option value="Aretes">Aretes</option>
-                            <option value="Collares">Collares</option>
-                            <option value="Pulseras">Pulseras</option>
-                            <option value="Conjuntos">Conjuntos</option>
-                          </select>
+                          {/* Name */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">Nombre</label>
+                            <input
+                              type="text"
+                              value={editingProduct.name}
+                              onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                            />
+                          </div>
+
+                          {/* Price */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">Precio ($)</label>
+                            <input
+                              type="number"
+                              value={editingProduct.price}
+                              onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                            />
+                          </div>
+
+                          {/* Category */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">Categoría</label>
+                            <select
+                              value={editingProduct.category}
+                              onChange={(e) => setEditingProduct({...editingProduct, category: e.target.value})}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                            >
+                              <option value="Anillos">Anillos</option>
+                              <option value="Aretes">Aretes</option>
+                              <option value="Collares">Collares</option>
+                              <option value="Pulseras">Pulseras</option>
+                              <option value="Conjuntos">Conjuntos</option>
+                            </select>
+                          </div>
+
+                          {/* Description */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">Descripción</label>
+                            <textarea
+                              value={editingProduct.description}
+                              onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})}
+                              rows={3}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                            />
+                          </div>
+
+                          {/* Main Image */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700">Imagen Principal (URL)</label>
+                            <input
+                              type="text"
+                              value={editingProduct.mainImage}
+                              onChange={(e) => setEditingProduct({...editingProduct, mainImage: e.target.value})}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                            />
+                          </div>
+
+                          {/* Stock / Variants Logic */}
+                          <div className="border-t border-gray-200 pt-2">
+                            <div className="flex items-center mb-2">
+                              <input
+                                type="checkbox"
+                                id={`hasVariants-${product.id}`}
+                                checked={Array.isArray(editingProduct.variants)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    // Switch to variants
+                                    setEditingProduct({
+                                      ...editingProduct, 
+                                      variants: [], 
+                                      stock: 0 
+                                    });
+                                  } else {
+                                    // Switch to simple stock
+                                    setEditingProduct({
+                                      ...editingProduct, 
+                                      variants: undefined,
+                                      stock: 0
+                                    });
+                                  }
+                                }}
+                                className="h-4 w-4 text-gold-600 focus:ring-gold-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor={`hasVariants-${product.id}`} className="ml-2 block text-xs text-gray-900">
+                                Tiene Variantes
+                              </label>
+                            </div>
+
+                            {!Array.isArray(editingProduct.variants) ? (
+                                // Simple Stock
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700">Stock Total</label>
+                                  <input
+                                    type="number"
+                                    value={editingProduct.stock || 0}
+                                    onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value) || 0})}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                                  />
+                                </div>
+                            ) : (
+                                // Variants Editor
+                                <div className="space-y-2">
+                                  <label className="block text-xs font-medium text-gray-700">Variantes</label>
+                                  {editingProduct.variants?.map((variant, idx) => (
+                                    <div key={idx} className="flex gap-2 items-center">
+                                      <input
+                                        type="text"
+                                        placeholder="Talla"
+                                        value={variant.size}
+                                        onChange={(e) => {
+                                          const newVariants = [...(editingProduct.variants || [])];
+                                          newVariants[idx].size = e.target.value;
+                                          setEditingProduct({...editingProduct, variants: newVariants});
+                                        }}
+                                        className="w-1/2 px-2 py-1 text-xs border border-gray-300 rounded"
+                                      />
+                                      <input
+                                        type="number"
+                                        placeholder="Stock"
+                                        value={variant.stock}
+                                        onChange={(e) => {
+                                          const newVariants = [...(editingProduct.variants || [])];
+                                          newVariants[idx].stock = parseInt(e.target.value) || 0;
+                                          // Update total stock
+                                          const totalStock = newVariants.reduce((acc, curr) => acc + curr.stock, 0);
+                                          setEditingProduct({...editingProduct, variants: newVariants, stock: totalStock});
+                                        }}
+                                        className="w-1/3 px-2 py-1 text-xs border border-gray-300 rounded"
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          const newVariants = editingProduct.variants?.filter((_, i) => i !== idx);
+                                          const totalStock = newVariants?.reduce((acc, curr) => acc + curr.stock, 0) || 0;
+                                          setEditingProduct({...editingProduct, variants: newVariants, stock: totalStock});
+                                        }}
+                                        className="text-red-500 hover:text-red-700"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => {
+                                      const newVariants = [...(editingProduct.variants || []), { size: '', stock: 0 }];
+                                      setEditingProduct({...editingProduct, variants: newVariants});
+                                    }}
+                                    className="text-xs text-gold-600 hover:text-gold-700 font-medium flex items-center"
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" /> Agregar Variante
+                                  </button>
+                                </div>
+                            )}
+                          </div>
+
                           <div className="flex space-x-2">
                             <button
                               onClick={handleSaveEdit}

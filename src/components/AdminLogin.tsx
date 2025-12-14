@@ -7,28 +7,30 @@ interface AdminLoginProps {
 }
 
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Simular un pequeño delay para la autenticación
-    setTimeout(() => {
-      const success = login(password);
-      if (success) {
-        onLogin();
+    try {
+      const { error } = await login(email, password);
+      if (error) {
+        setError('Credenciales incorrectas');
       } else {
-        setError('Contraseña incorrecta');
-        setPassword('');
+        onLogin();
       }
+    } catch (err) {
+      setError('Ocurrió un error al iniciar sesión');
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (
@@ -44,12 +46,27 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
               Acceso Administrativo
             </h1>
             <p className="font-inter text-gray-600">
-              Ingresa la contraseña para acceder al panel de administración
+              Ingresa tus credenciales para acceder
             </p>
           </div>
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-colors duration-200"
+                placeholder="admin@salcedojewels.com"
+              />
+            </div>
+
             <div>
               <label htmlFor="password" className="block font-inter text-sm font-medium text-gray-700 mb-2">
                 Contraseña
@@ -83,7 +100,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
             <button
               type="submit"
-              disabled={!password || isLoading}
+              disabled={!email || !password || isLoading}
               className="w-full bg-gold-500 hover:bg-gold-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
             >
               {isLoading ? (

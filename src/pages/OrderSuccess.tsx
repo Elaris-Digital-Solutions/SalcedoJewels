@@ -117,7 +117,7 @@ ${orderSummary.customer.firstName} ${orderSummary.customer.lastName}`;
             </Link>
             
             <a
-              href={`https://wa.me/51999999999?text=${generateWhatsAppMessage()}`}
+              href={`https://wa.me/51979004991?text=${generateWhatsAppMessage()}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-md font-medium transition-colors duration-200 w-full sm:w-auto justify-center"
