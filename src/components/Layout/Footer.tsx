@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
               </span>
             </div>
             <p className="font-inter text-gray-600 text-sm leading-relaxed">
-              Joyería de lujo en oro italiano de 18k. Cada pieza es única y está diseñada
+              Joyería de lujo en oro italiano de 18k. Cada pieza es especial y está diseñada
               para resaltar tu elegancia natural con la más alta calidad y sofisticación.
             </p>
             <div className="flex space-x-4">

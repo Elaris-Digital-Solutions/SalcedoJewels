@@ -24,18 +24,18 @@ const About: React.FC = () => {
             <div className="space-y-4 font-inter text-gray-600 leading-relaxed">
               <p>
                 Salcedo Jewels nació de una pasión por la belleza y la artesanía excepcional. 
-                Fundada con la visión de crear joyas que no solo adornen, sino que cuenten 
+                Fundada con la visión de ofrecer joyas que cuenten 
                 historias y capturen momentos especiales de la vida.
               </p>
               <p>
-                Cada pieza de nuestra colección está meticulosamente diseñada y elaborada 
-                usando únicamente oro italiano de 18k, garantizando no solo la belleza 
+                Cada pieza de nuestra colección está meticulosamente escogida y elaborada 
+                usando especialmente oro italiano de 18k, garantizando no solo la belleza 
                 estética, sino también la durabilidad y el valor que mereces.
               </p>
               <p>
-                Nos especializamos en crear joyas que reflejan elegancia, sofisticación 
-                y un toque de lujo cotidiano. Cada pieza es única y está esperando el 
-                momento perfecto para encontrarse con su dueña ¿eres tú?
+                Nos especializamos en tener una colección de joyas que reflejen elegancia,  
+                sofisticación y un toque de lujo cotidiano. Cada pieza es especial y está 
+                esperando el momento perfecto para encontrarse con su dueña ¿eres tú?
               </p>
             </div>
           </div>
@@ -55,7 +55,7 @@ const About: React.FC = () => {
                 Calidad Excepcional
               </h3>
               <p className="font-inter text-gray-600 leading-relaxed">
-                Utilizamos únicamente materiales de la más alta calidad y técnicas 
+                Se utiliza únicamente materiales de la más alta calidad y técnicas 
                 artesanales tradicionales para crear piezas duraderas y hermosas.
               </p>
             </div>
@@ -107,9 +107,9 @@ const About: React.FC = () => {
             Nuestra Misión
           </h2>
           <p className="font-inter text-lg leading-relaxed max-w-3xl mx-auto">
-            Crear joyas excepcionales que capturen la esencia de momentos especiales 
+            Ofrecer joyas excepcionales que capturen la esencia de momentos especiales 
             y se conviertan en tesoros familiares que perduren por generaciones. 
-            Cada pieza de Salcedo Jewels está diseñada para ser más que una joya: 
+            Cada pieza de Salcedo Jewels está pensada para ser más que una joya: 
             es una expresión de amor, elegancia y belleza atemporal.
           </p>
         </div>

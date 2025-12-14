@@ -70,8 +70,8 @@ const Home: React.FC = () => {
                 Diseño Exclusivo
               </h3>
               <p className="font-inter text-gray-600 leading-relaxed">
-                Cada pieza es cuidadosamente diseñada para reflejar elegancia y 
-                sofisticación, creando joyas verdaderamente únicas.
+                Cada pieza es cuidadosamente seleccionada para reflejar elegancia y 
+                sofisticación, ofreciendo joyas verdaderamente especiales.
               </p>
             </div>
             

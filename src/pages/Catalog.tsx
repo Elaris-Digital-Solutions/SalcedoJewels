@@ -81,88 +81,21 @@ const Catalog: React.FC = () => {
   };
 
   return (
-    <div ref={catalogRef} className="min-h-screen bg-cream-25 pt-24 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="font-playfair text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Catálogo de Joyas
-          </h1>
-          <p className="font-inter text-lg text-gray-600 max-w-2xl mx-auto">
-            Explora nuestra exclusiva colección de joyería en oro italiano de 18k
-          </p>
-        </div>
+	<div ref={catalogRef} className="min-h-screen bg-cream-25 pt-24 pb-12">
+	  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+		{/* Header */}
+		<div className="text-center mb-12">
+		  <h1 className="font-playfair text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+			Catálogo de Joyas
+		  </h1>
+		  <p className="font-inter text-lg text-gray-600 max-w-2xl mx-auto">
+			Explora nuestra exclusiva colección de joyería en oro italiano de 18k
+		  </p>
+		</div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar joyas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-              />
-            </div>
+        {/* ...existing code... */}
 
-            {/* Category Filter */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-            >
-              <option value="">Todas las categorías</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-
-            {/* Price Filter */}
-            <select
-              value={priceRange}
-              onChange={(e) => setPriceRange(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-            >
-              <option value="">Todos los precios</option>
-              <option value="under-500">Menos de $500</option>
-              <option value="500-1000">$500 - $1,000</option>
-              <option value="1000-1500">$1,000 - $1,500</option>
-              <option value="over-1500">Más de $1,500</option>
-            </select>
-
-            {/* Sort Filter */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-            >
-              <option value="">Ordenar por</option>
-              <option value="price-asc">Precio: Menor a Mayor</option>
-              <option value="price-desc">Precio: Mayor a Menor</option>
-              <option value="name-asc">Nombre: A-Z</option>
-              <option value="name-desc">Nombre: Z-A</option>
-            </select>
-
-            {/* Clear Filters */}
-            <button
-              onClick={handleClearFilters}
-              className="flex items-center justify-center space-x-2 px-4 py-2 border border-beige-300 text-gold-600 rounded-md hover:bg-cream-50 transition-colors duration-200"
-            >
-              <Filter className="h-4 w-4" />
-              <span>Limpiar filtros</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Results Count */}
-        <div className="mb-6">
-          <p className="font-inter text-gray-600">
-            Mostrando {sortedProducts.length} de {products.length} productos
-          </p>
-        </div>
+        {/* ...existing code... */}
 
         {/* Products Grid */}
         {sortedProducts.length > 0 ? (
