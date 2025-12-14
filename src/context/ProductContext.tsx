@@ -1,11 +1,13 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '../types/Product';
+import { supabase } from '../supabaseClient';
 
 interface ProductContextType {
   products: Product[];
-  addProduct: (product: Product) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  loading: boolean;
+  addProduct: (product: Product) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Product | undefined;
   getFeaturedProducts: () => Product[];
   getMostExpensiveProducts: (limit?: number) => Product[];
@@ -13,82 +15,124 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-// Mock data for initial products
-const initialProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Aretes Mariposa con Brillantes',
-    price: 1449.9,
-    category: 'Aretes',
-    description: 'Elegantes aretes en forma de mariposa elaborados en oro italiano de 18k, adornados con brillantes que capturan y reflejan la luz de manera espectacular. Diseño delicado y sofisticado perfecto para ocasiones especiales.',
-    mainImage: 'https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=800',
-    additionalImages: [
-      'https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=800'
-    ],
-    featured: true,
-    inStock: true
-  },
-  {
-    id: '2',
-    name: 'Collar Corazón Eterno',
-    price: 2299.0,
-    category: 'Collares',
-    description: 'Hermoso collar con dije en forma de corazón en oro italiano de 18k. Simboliza el amor eterno con un diseño elegante y atemporal. Perfecto como regalo especial o para uso diario sofisticado.',
-    mainImage: 'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=800',
-    additionalImages: [
-      'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=800'
-    ],
-    featured: true,
-    inStock: true
-  },
-  {
-    id: '3',
-    name: 'Anillo Solitario Diamante',
-    price: 3599.0,
-    category: 'Anillos',
-    description: 'Magnífico anillo solitario con diamante central en oro italiano de 18k. Diseño clásico y elegante que resalta la belleza natural del diamante. Ideal para compromisos y momentos especiales.',
-    mainImage: 'https://images.pexels.com/photos/1721932/pexels-photo-1721932.jpeg?auto=compress&cs=tinysrgb&w=800',
-    additionalImages: [
-      'https://images.pexels.com/photos/1721932/pexels-photo-1721932.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1191531/pexels-photo-1191531.jpeg?auto=compress&cs=tinysrgb&w=800'
-    ],
-    featured: true,
-    inStock: true
-  },
-  {
-    id: '4',
-    name: 'Pulsera Cadena Delicada',
-    price: 899.0,
-    category: 'Pulseras',
-    description: 'Delicada pulsera de cadena en oro italiano de 18k con eslabones finamente trabajados. Perfecta para uso diario o para combinar con otros accesorios de la colección.',
-    mainImage: 'https://images.pexels.com/photos/691046/pexels-photo-691046.jpeg?auto=compress&cs=tinysrgb&w=800',
-    additionalImages: [
-      'https://images.pexels.com/photos/691046/pexels-photo-691046.jpeg?auto=compress&cs=tinysrgb&w=800'
-    ],
-    featured: false,
-    inStock: true
-  }
-];
-
 export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addProduct = (product: Product) => {
-    setProducts(prev => [...prev, product]);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*');
+      
+      if (error) throw error;
+      
+      if (data) {
+        const mappedProducts: Product[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: Number(item.price),
+          category: item.category,
+          description: item.description || '',
+          mainImage: item.main_image,
+          additionalImages: item.additional_images || [],
+          featured: item.featured,
+          inStock: item.in_stock,
+          stock: item.stock,
+          variants: item.variants
+        }));
+        setProducts(mappedProducts);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateProduct = (id: string, updatedProduct: Partial<Product>) => {
-    setProducts(prev => 
-      prev.map(product => 
-        product.id === id ? { ...product, ...updatedProduct } : product
-      )
-    );
+  const addProduct = async (product: Product) => {
+    try {
+      const dbProduct = {
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        description: product.description,
+        main_image: product.mainImage,
+        additional_images: product.additionalImages,
+        featured: product.featured,
+        in_stock: product.inStock,
+        stock: product.stock,
+        variants: product.variants
+      };
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert([dbProduct])
+        .select();
+
+      if (error) throw error;
+
+      if (data) {
+        const newProduct: Product = {
+          ...product,
+          id: data[0].id
+        };
+        setProducts(prev => [...prev, newProduct]);
+      }
+    } catch (error) {
+      console.error('Error adding product:', error);
+      alert('Error al guardar el producto en la base de datos');
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(product => product.id !== id));
+  const updateProduct = async (id: string, updatedProduct: Partial<Product>) => {
+    try {
+      const dbUpdate: any = {};
+      if (updatedProduct.name) dbUpdate.name = updatedProduct.name;
+      if (updatedProduct.price) dbUpdate.price = updatedProduct.price;
+      if (updatedProduct.category) dbUpdate.category = updatedProduct.category;
+      if (updatedProduct.description) dbUpdate.description = updatedProduct.description;
+      if (updatedProduct.mainImage) dbUpdate.main_image = updatedProduct.mainImage;
+      if (updatedProduct.additionalImages) dbUpdate.additional_images = updatedProduct.additionalImages;
+      if (updatedProduct.featured !== undefined) dbUpdate.featured = updatedProduct.featured;
+      if (updatedProduct.inStock !== undefined) dbUpdate.in_stock = updatedProduct.inStock;
+      if (updatedProduct.stock !== undefined) dbUpdate.stock = updatedProduct.stock;
+      if (updatedProduct.variants) dbUpdate.variants = updatedProduct.variants;
+
+      const { error } = await supabase
+        .from('products')
+        .update(dbUpdate)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setProducts(prev => 
+        prev.map(product => 
+          product.id === id ? { ...product, ...updatedProduct } : product
+        )
+      );
+    } catch (error) {
+      console.error('Error updating product:', error);
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setProducts(prev => prev.filter(product => product.id !== id));
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
   };
 
   const getProductById = (id: string) => {
@@ -96,11 +140,12 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const getFeaturedProducts = () => {
-    return products.filter(product => product.featured);
+    return products.filter(product => product.featured && product.stock > 0);
   };
 
   const getMostExpensiveProducts = (limit: number = 3) => {
     return [...products]
+      .filter(product => product.stock > 0)
       .sort((a, b) => b.price - a.price)
       .slice(0, limit);
   };

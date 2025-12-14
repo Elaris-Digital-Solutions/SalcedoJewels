@@ -1,3 +1,8 @@
+export interface ProductVariant {
+  size: string;
+  stock: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -8,6 +13,8 @@ export interface Product {
   additionalImages: string[];
   featured?: boolean;
   inStock?: boolean;
+  stock?: number;
+  variants?: ProductVariant[];
 }
 
 export interface ProductCode {

@@ -14,6 +14,7 @@ const Header: React.FC = () => {
   const navItems = [
     { name: 'Inicio', path: '/' },
     { name: 'Catálogo', path: '/catalog' },
+    { name: 'Seguimiento', path: '/tracking' },
     { name: 'Sobre Nosotros', path: '/about' },
     { name: 'Contacto', path: '/contact' },
   ];

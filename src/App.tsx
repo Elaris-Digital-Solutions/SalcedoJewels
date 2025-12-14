@@ -14,6 +14,7 @@ import Contact from './pages/Contact';
 import Admin from './pages/Admin';
 import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
+import OrderTracking from './pages/OrderTracking';
 import WhatsAppButton from './components/Cart/WhatsAppButton';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/order-success" element={<OrderSuccess />} />
+                  <Route path="/tracking" element={<OrderTracking />} />
                 </Routes>
               </main>
               <Footer />

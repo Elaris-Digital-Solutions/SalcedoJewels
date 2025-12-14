@@ -12,9 +12,9 @@ const WhatsAppButton: React.FC = () => {
     message =
       `¡Hola! Me gustaría comprar los siguientes productos:%0A%0A` +
       items.map(item =>
-        `• ${item.product.name} (${item.product.category}) x${item.quantity} - S/ ${item.product.price.toLocaleString()} c/u`
+        `• ${item.product.name} (${item.product.category}) x${item.quantity} - $ ${item.product.price.toLocaleString()} c/u`
       ).join('%0A') +
-      `%0A%0ATotal: S/ ${getTotalPrice().toLocaleString()}`;
+      `%0A%0ATotal: $ ${getTotalPrice().toLocaleString()}`;
   } else {
     message = '¡Hola! Estoy interesado en productos de Salcedo Jewels.';
   }

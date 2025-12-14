@@ -11,9 +11,10 @@ const ProductDetail: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
   const product = id ? getProductById(id) : undefined;
-  const cartQuantity = product ? getItemQuantity(product.id) : 0;
+  const cartQuantity = product ? getItemQuantity(product.id, selectedSize || undefined) : 0;
 
   if (!product) {
     return (
@@ -35,19 +36,33 @@ const ProductDetail: React.FC = () => {
   }
 
   const allImages = [product.mainImage, ...product.additionalImages];
+  const hasVariants = product.variants && product.variants.length > 0;
+
+  // Determine current stock based on selection
+  const currentStock = hasVariants
+    ? (selectedSize ? product.variants?.find(v => v.size === selectedSize)?.stock || 0 : 0)
+    : product.stock;
+
+  const isOutOfStock = hasVariants 
+    ? (selectedSize ? currentStock === 0 : false) // If variant selected, check its stock. If not, wait for selection.
+    : currentStock === 0;
+
+  const canAddToCart = hasVariants
+    ? (selectedSize !== null && currentStock > 0)
+    : currentStock > 0;
 
   const handleAddToCart = () => {
-    if (product.inStock) {
-      addToCart(product, quantity);
-      setQuantity(1); // Reset quantity after adding
+    if (canAddToCart) {
+      addToCart(product, quantity, selectedSize || undefined);
+      setQuantity(1);
     }
   };
 
   const handleUpdateCartQuantity = (newQuantity: number) => {
     if (newQuantity <= 0) {
-      updateQuantity(product.id, 0);
+      updateQuantity(product.id, 0, selectedSize || undefined);
     } else {
-      updateQuantity(product.id, newQuantity);
+      updateQuantity(product.id, newQuantity, selectedSize || undefined);
     }
   };
 
@@ -121,19 +136,25 @@ const ProductDetail: React.FC = () => {
                 </span>
                 {/* Stock Status */}
                 <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border ${
-                  product.inStock 
+                  !isOutOfStock && (!hasVariants || selectedSize)
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
                     : 'bg-red-50 border-red-200 text-red-700'
                 }`}>
-                  {product.inStock ? (
+                  {!isOutOfStock && (!hasVariants || selectedSize) ? (
                     <>
                       <CheckCircle className="h-4 w-4" />
-                      <span className="font-inter text-sm font-medium">Disponible</span>
+                      <span className="font-inter text-sm font-medium">
+                        {hasVariants && selectedSize 
+                          ? `Disponible (${currentStock} unid.)` 
+                          : 'Disponible'}
+                      </span>
                     </>
                   ) : (
                     <>
                       <XCircle className="h-4 w-4" />
-                      <span className="font-inter text-sm font-medium">Agotado</span>
+                      <span className="font-inter text-sm font-medium">
+                        {hasVariants && !selectedSize ? 'Selecciona una talla' : 'Agotado'}
+                      </span>
                     </>
                   )}
                 </div>
@@ -150,8 +171,35 @@ const ProductDetail: React.FC = () => {
               </p>
             </div>
 
+            {/* Variants Selector */}
+            {hasVariants && (
+              <div>
+                <h3 className="font-inter text-sm font-medium text-gray-900 mb-3">
+                  Talla / Medida
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {product.variants?.map((variant) => (
+                    <button
+                      key={variant.size}
+                      onClick={() => setSelectedSize(variant.size)}
+                      disabled={variant.stock === 0}
+                      className={`px-4 py-2 rounded-md border text-sm font-medium transition-all duration-200 ${
+                        selectedSize === variant.size
+                          ? 'border-gold-500 bg-gold-50 text-gold-700 ring-1 ring-gold-500'
+                          : variant.stock === 0
+                            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed decoration-slice'
+                            : 'border-gray-300 hover:border-gold-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {variant.size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Quantity and Cart Controls */}
-            {product.inStock && (
+            {(!hasVariants || selectedSize) && !isOutOfStock && (
               <div className="space-y-4">
                 {cartQuantity > 0 ? (
                   /* Product already in cart - show cart controls */
@@ -159,6 +207,7 @@ const ProductDetail: React.FC = () => {
                     <div className="flex items-center justify-between mb-3">
                       <span className="font-inter font-medium text-gray-800">
                         En tu carrito: {cartQuantity} {cartQuantity === 1 ? 'unidad' : 'unidades'}
+                        {selectedSize && <span className="text-sm text-gray-500 ml-1">({selectedSize})</span>}
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -173,7 +222,10 @@ const ProductDetail: React.FC = () => {
                       </span>
                       <button
                         onClick={() => handleUpdateCartQuantity(cartQuantity + 1)}
-                        className="p-2 bg-white border border-beige-300 rounded-md hover:bg-beige-50 transition-colors duration-200"
+                        disabled={cartQuantity >= currentStock}
+                        className={`p-2 bg-white border border-beige-300 rounded-md transition-colors duration-200 ${
+                          cartQuantity >= currentStock ? 'opacity-50 cursor-not-allowed' : 'hover:bg-beige-50'
+                        }`}
                       >
                         <Plus className="h-4 w-4 text-gray-600" />
                       </button>
@@ -197,12 +249,15 @@ const ProductDetail: React.FC = () => {
                           {quantity}
                         </span>
                         <button
-                          onClick={() => setQuantity(quantity + 1)}
+                          onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
                           className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
                         >
                           <Plus className="h-4 w-4 text-gray-600" />
                         </button>
                       </div>
+                      <span className="text-xs text-gray-500">
+                        (Máx: {currentStock})
+                      </span>
                     </div>
                   </div>
                 )}
@@ -214,20 +269,22 @@ const ProductDetail: React.FC = () => {
               <div className="flex space-x-3">
                 <button
                   onClick={handleAddToCart}
-                  disabled={!product.inStock}
+                  disabled={!canAddToCart}
                   className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${
-                    product.inStock
+                    canAddToCart
                       ? 'bg-gold-500 hover:bg-gold-600 text-white hover:shadow-lg'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
                   <ShoppingBag className="h-5 w-5" />
                   <span>
-                    {!product.inStock 
-                      ? 'No Disponible' 
-                      : cartQuantity > 0 
-                        ? 'Agregar Más' 
-                        : 'Agregar al Carrito'
+                    {hasVariants && !selectedSize
+                      ? 'Selecciona una talla'
+                      : !canAddToCart 
+                        ? 'Agotado' 
+                        : cartQuantity > 0 
+                          ? 'Agregar Más' 
+                          : 'Agregar al Carrito'
                     }
                   </span>
                 </button>

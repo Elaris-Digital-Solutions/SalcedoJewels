@@ -28,31 +28,24 @@ const OrderSuccess: React.FC = () => {
     );
   }
 
-  const generateOrderNumber = () => {
-    return `SJ${Date.now().toString().slice(-8)}`;
-  };
-
-  const orderNumber = generateOrderNumber();
+  const orderNumber = orderSummary.orderCode || `SJ${Date.now().toString().slice(-8)}`;
 
   const generateWhatsAppMessage = () => {
     const message = `¡Hola! He realizado un pedido en Salcedo Jewels:
 
-*Número de Pedido:* ${orderNumber}
+*Código de Pedido:* ${orderNumber}
 *Cliente:* ${orderSummary.customer.firstName} ${orderSummary.customer.lastName}
-*Email:* ${orderSummary.customer.email}
+*DNI:* ${orderSummary.customer.dni}
 *Teléfono:* ${orderSummary.customer.phone}
 *Dirección:* ${orderSummary.customer.address}, ${orderSummary.customer.city}
 
 *Productos:*
 ${orderSummary.items.map((item: any) => 
-  `• ${item.product.name} (x${item.quantity}) - $${(item.product.price * item.quantity).toLocaleString()}`
+  `• ${item.product.name} (x${item.quantity}) - S/ ${(item.product.price * item.quantity).toLocaleString()}`
 ).join('\n')}
 
-*Total:* $${orderSummary.total.toLocaleString()}
-*Método de Pago:* ${
-  orderSummary.payment.method === 'transfer' ? 'Transferencia Bancaria' :
-  orderSummary.payment.method === 'card' ? 'Tarjeta de Crédito' : 'Pago en Efectivo'
-}
+*Total:* S/ ${orderSummary.total.toLocaleString()}
+*Método de Pago:* Transferencia Bancaria
 
 Por favor, confirmen la disponibilidad y procedan con el siguiente paso. ¡Gracias!`;
 
@@ -108,9 +101,31 @@ ${orderSummary.customer.firstName} ${orderSummary.customer.lastName}`;
           <h1 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
             ¡Pedido Realizado con Éxito!
           </h1>
-          <p className="font-inter text-lg text-gray-600 max-w-2xl mx-auto">
-            Gracias por tu compra. Hemos recibido tu pedido y nos pondremos en contacto contigo pronto.
+          <p className="font-inter text-gray-600 mb-8">
+            Gracias por tu compra. Hemos recibido tu pedido correctamente.
+            <br />
+            Tu código de seguimiento es: <span className="font-bold text-gold-600">{orderNumber}</span>
           </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+            <Link
+              to="/tracking"
+              className="inline-flex items-center space-x-2 bg-white border border-gold-500 text-gold-600 hover:bg-gold-50 px-6 py-3 rounded-md font-medium transition-colors duration-200 w-full sm:w-auto justify-center"
+            >
+              <CheckCircle className="h-5 w-5" />
+              <span>Seguir mi Pedido</span>
+            </Link>
+            
+            <a
+              href={`https://wa.me/51999999999?text=${generateWhatsAppMessage()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-md font-medium transition-colors duration-200 w-full sm:w-auto justify-center"
+            >
+              <MessageCircle className="h-5 w-5" />
+              <span>Confirmar por WhatsApp</span>
+            </a>
+          </div>
         </div>
 
         {/* Order Details */}

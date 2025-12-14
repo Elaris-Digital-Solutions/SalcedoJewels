@@ -19,20 +19,22 @@ process.env.NIUBIZ_WEBHOOK_SECRET = 'dev_webhook_secret_123';
 process.env.NODE_ENV = 'development';
 
 // Importar endpoints de API
-const niubizSession = require('./api/niubiz-session.js');
-const niubizPayment = require('./api/niubiz-payment.js');
-const niubizWebhook = require('./api/niubiz-webhook.js');
-const sendEmail = require('./api/send-email.js');
-const uploadImage = require('./api/upload-image.js');
-const listDescriptions = require('./api/list-descriptions.js');
+// const niubizSession = require('./api/niubiz-session.js');
+// const niubizPayment = require('./api/niubiz-payment.js');
+// const niubizWebhook = require('./api/niubiz-webhook.js');
+// const sendEmail = require('./api/send-email.js');
+// const uploadImage = require('./api/upload-image.js');
+// const listDescriptions = require('./api/list-descriptions.js');
+const saveOrder = require('./api/save-order.js');
 
 // Rutas de API
-app.post('/api/niubiz-session', niubizSession);
-app.post('/api/niubiz-payment', niubizPayment);
-app.post('/api/niubiz-webhook', niubizWebhook);
-app.post('/api/send-email', sendEmail);
-app.post('/api/upload-image', uploadImage);
-app.get('/api/list-descriptions', listDescriptions);
+// app.post('/api/niubiz-session', niubizSession);
+// app.post('/api/niubiz-payment', niubizPayment);
+// app.post('/api/niubiz-webhook', niubizWebhook);
+// app.post('/api/send-email', sendEmail);
+// app.post('/api/upload-image', uploadImage);
+// app.get('/api/list-descriptions', listDescriptions);
+app.post('/api/save-order', saveOrder);
 
 // Ruta para servir la aplicación React
 app.get('*', (req, res) => {

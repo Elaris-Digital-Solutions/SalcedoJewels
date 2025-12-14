@@ -269,7 +269,7 @@ const NiubizPayment: React.FC<NiubizPaymentProps> = ({
             Pago con Tarjeta
           </h2>
           <p className="font-inter text-sm text-gray-600">
-            {currency === 'PEN' ? 'Pagar en Soles' : 'Pagar en Dólares'}
+            Pagar en Dólares
           </p>
         </div>
       </div>
@@ -279,7 +279,7 @@ const NiubizPayment: React.FC<NiubizPaymentProps> = ({
         <div className="flex justify-between items-center">
           <span className="font-inter text-sm text-gray-600">Total a pagar:</span>
           <span className="font-playfair text-lg font-bold text-gold-600">
-            {currency === 'PEN' ? 'S/' : '$'} {amount.toLocaleString()}
+            $ {amount.toLocaleString()}
           </span>
         </div>
       </div>

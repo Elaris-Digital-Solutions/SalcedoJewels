@@ -4,18 +4,19 @@ import { Product } from '../types/Product';
 export interface CartItem {
   product: Product;
   quantity: number;
+  selectedSize?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: Product, quantity?: number, size?: string) => void;
+  removeFromCart: (productId: string, size?: string) => void;
+  updateQuantity: (productId: string, quantity: number, size?: string) => void;
   clearCart: () => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
-  isInCart: (productId: string) => boolean;
-  getItemQuantity: (productId: string) => number;
+  isInCart: (productId: string, size?: string) => boolean;
+  getItemQuantity: (productId: string, size?: string) => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -40,35 +41,39 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('salcedo-cart', JSON.stringify(items));
   }, [items]);
 
-  const addToCart = (product: Product, quantity: number = 1) => {
+  const addToCart = (product: Product, quantity: number = 1, size?: string) => {
     setItems(prevItems => {
-      const existingItem = prevItems.find(item => item.product.id === product.id);
+      const existingItem = prevItems.find(item => 
+        item.product.id === product.id && item.selectedSize === size
+      );
       
       if (existingItem) {
         return prevItems.map(item =>
-          item.product.id === product.id
+          item.product.id === product.id && item.selectedSize === size
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } else {
-        return [...prevItems, { product, quantity }];
+        return [...prevItems, { product, quantity, selectedSize: size }];
       }
     });
   };
 
-  const removeFromCart = (productId: string) => {
-    setItems(prevItems => prevItems.filter(item => item.product.id !== productId));
+  const removeFromCart = (productId: string, size?: string) => {
+    setItems(prevItems => prevItems.filter(item => 
+      !(item.product.id === productId && item.selectedSize === size)
+    ));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number, size?: string) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, size);
       return;
     }
 
     setItems(prevItems =>
       prevItems.map(item =>
-        item.product.id === productId
+        item.product.id === productId && item.selectedSize === size
           ? { ...item, quantity }
           : item
       )
@@ -87,12 +92,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   };
 
-  const isInCart = (productId: string) => {
-    return items.some(item => item.product.id === productId);
+  const isInCart = (productId: string, size?: string) => {
+    return items.some(item => item.product.id === productId && item.selectedSize === size);
   };
 
-  const getItemQuantity = (productId: string) => {
-    const item = items.find(item => item.product.id === productId);
+  const getItemQuantity = (productId: string, size?: string) => {
+    const item = items.find(item => item.product.id === productId && item.selectedSize === size);
     return item ? item.quantity : 0;
   };
 

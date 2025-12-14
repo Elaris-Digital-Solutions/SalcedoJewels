@@ -35,7 +35,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             >
               <Eye className="h-5 w-5 text-gold-600" />
             </Link>
-            {product.inStock && (
+            {product.inStock && (!product.variants || product.variants.length === 0) && (
               <button
                 onClick={handleAddToCart}
                 className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-3 hover:bg-cream-50"

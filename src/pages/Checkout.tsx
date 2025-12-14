@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, User, MapPin, Phone, Mail, Calendar, Lock, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import NiubizPayment from '../components/NiubizPayment';
 
 interface CustomerData {
   firstName: string;
   lastName: string;
-  email: string;
+  dni: string;
   phone: string;
   address: string;
+  department: string;
   city: string;
-  postalCode: string;
   country: string;
 }
 
 interface PaymentData {
-  method: 'transfer' | 'cash' | 'card';
+  method: 'transfer';
   cardNumber: string;
   expiryDate: string;
   cvv: string;
@@ -33,11 +33,11 @@ const Checkout: React.FC = () => {
   const [customerData, setCustomerData] = useState<CustomerData>({
     firstName: '',
     lastName: '',
-    email: '',
+    dni: '',
     phone: '',
     address: '',
+    department: '',
     city: '',
-    postalCode: '',
     country: 'Perú'
   });
 
@@ -47,12 +47,12 @@ const Checkout: React.FC = () => {
     expiryDate: '',
     cvv: '',
     cardName: '',
-    currency: 'PEN'
+    currency: 'USD'
   });
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showNiubizPayment, setShowNiubizPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Partial<CustomerData>>({});
 
   // Redirect if cart is empty
   if (items.length === 0) {
@@ -87,30 +87,48 @@ const Checkout: React.FC = () => {
     setPaymentData(prev => ({ ...prev, [field]: value }));
   };
 
+  const getStep1Errors = () => {
+    const errors: Partial<CustomerData> = {};
+    
+    if (!customerData.firstName.trim()) errors.firstName = 'El nombre es requerido';
+    if (!customerData.lastName.trim()) errors.lastName = 'Los apellidos son requeridos';
+    
+    const dniRegex = /^\d{8}$/;
+    if (!customerData.dni.trim()) {
+      errors.dni = 'El DNI es requerido';
+    } else if (!dniRegex.test(customerData.dni)) {
+      errors.dni = 'DNI inválido (debe tener 8 dígitos)';
+    }
+
+    const phoneRegex = /^\+?[\d\s-]{9,}$/;
+    if (!customerData.phone.trim()) {
+      errors.phone = 'El teléfono es requerido';
+    } else if (!phoneRegex.test(customerData.phone)) {
+      errors.phone = 'Teléfono inválido (mínimo 9 dígitos)';
+    }
+
+    if (!customerData.address.trim()) errors.address = 'La dirección es requerida';
+    if (!customerData.department.trim()) errors.department = 'El departamento es requerido';
+    if (!customerData.city.trim()) errors.city = 'La ciudad es requerida';
+
+    return errors;
+  };
+
   const validateStep1 = () => {
-    return customerData.firstName && customerData.lastName && customerData.email && 
-           customerData.phone && customerData.address && customerData.city;
+    const errors = getStep1Errors();
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const validateStep2 = () => {
-    if (paymentData.method === 'transfer' || paymentData.method === 'cash') {
-      return true;
-    }
-    if (paymentData.method === 'card') {
-      return true; // La validación se hace en el componente NiubizPayment
-    }
-    return paymentData.cardNumber && paymentData.expiryDate && paymentData.cvv && paymentData.cardName;
+    return paymentData.method === 'transfer';
   };
 
   const handleNextStep = () => {
     if (currentStep === 1 && validateStep1()) {
       setCurrentStep(2);
     } else if (currentStep === 2 && validateStep2()) {
-      if (paymentData.method === 'card') {
-        setShowNiubizPayment(true);
-      } else {
-        setCurrentStep(3);
-      }
+      setCurrentStep(3);
     }
   };
 
@@ -118,27 +136,6 @@ const Checkout: React.FC = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  };
-
-  // Manejar éxito del pago con Niubiz
-  const handleNiubizSuccess = (transactionData: any) => {
-    console.log('Pago exitoso con Niubiz:', transactionData);
-    setShowNiubizPayment(false);
-    setPaymentError(null);
-    setCurrentStep(3);
-  };
-
-  // Manejar error del pago con Niubiz
-  const handleNiubizError = (error: string) => {
-    console.error('Error en pago con Niubiz:', error);
-    setPaymentError(error);
-    setShowNiubizPayment(false);
-  };
-
-  // Cancelar pago con Niubiz
-  const handleNiubizCancel = () => {
-    setShowNiubizPayment(false);
-    setPaymentError(null);
   };
 
   const handleSubmitOrder = async () => {
@@ -149,40 +146,57 @@ const Checkout: React.FC = () => {
 
     setIsProcessing(true);
 
-    // Simulate order processing
-    setTimeout(async () => {
-      // Create order summary for email/WhatsApp
-      const orderSummary = {
-        customer: customerData,
-        payment: paymentData,
-        items: items,
-        total: getTotalPrice(),
-        orderDate: new Date().toLocaleDateString('es-PE')
-      };
+    // Create order summary
+    const orderSummary = {
+      customer: customerData,
+      payment: paymentData,
+      items: items,
+      total: getTotalPrice(),
+      orderDate: new Date().toLocaleDateString('es-PE'),
+      orderCode: ''
+    };
 
-      // Enviar correo a msalcedojewels@gmail.com
-      const orderMessage = `\nNuevo pedido en Salcedo Jewels\n\nCliente: ${customerData.firstName} ${customerData.lastName}\nEmail: ${customerData.email}\nTeléfono: ${customerData.phone}\nDirección: ${customerData.address}, ${customerData.city}, ${customerData.country}\n\nProductos:\n${items.map(item => `• ${item.product.name} (x${item.quantity}) - S/ ${item.product.price.toLocaleString()}`).join('\n')}\n\nTotal: S/ ${getTotalPrice().toLocaleString()}\nMétodo de Pago: ${paymentData.method === 'transfer' ? 'Transferencia Bancaria' : paymentData.method === 'card' ? 'Tarjeta de Crédito/Débito' : 'Pago en Efectivo'}\n\nPor favor, confirmen la recepción de este pedido y procedan con los siguientes pasos.\n`;
-
-      await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `${customerData.firstName} ${customerData.lastName}`,
-          email: customerData.email,
-          phone: customerData.phone,
-          subject: 'Nuevo pedido Salcedo Jewels',
-          message: orderMessage
-        })
-      });
-
-      // In a real app, you would send this to your backend
-      console.log('Order submitted:', orderSummary);
+    try {
+      // Generar código de pedido único (ej: ORD-123456)
+      const orderCode = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
       
-      // Clear cart and redirect to success page
+      // Insertar pedido en Supabase
+      const { error } = await supabase
+        .from('orders')
+        .insert([
+          {
+            order_code: orderCode,
+            customer_name: `${customerData.firstName} ${customerData.lastName}`,
+            customer_dni: customerData.dni,
+            customer_phone: customerData.phone,
+            shipping_address: `${customerData.address}, ${customerData.city}, ${customerData.department}`,
+            items: items, // Supabase guardará esto como JSON si la columna es tipo JSON/JSONB
+            total_amount: getTotalPrice(),
+            payment_method: 'Transferencia Bancaria',
+            status: 'Recibido'
+          }
+        ]);
+
+      if (error) {
+        console.error('Error al guardar en Supabase:', error);
+        // Opcional: Mostrar error al usuario o continuar si quieres que sea "optimista"
+        // alert('Hubo un error al guardar el pedido. Por favor contáctanos.');
+      } else {
+        console.log('Pedido guardado en Supabase exitosamente');
+        // Actualizar el resumen con el código
+        orderSummary.orderCode = orderCode;
+      }
+    } catch (error) {
+      console.error('Error inesperado:', error);
+    }
+
+    // Simulate processing delay for UX
+    setTimeout(() => {
+      console.log('Order submitted:', orderSummary);
       clearCart();
       setIsProcessing(false);
       navigate('/order-success', { state: { orderSummary } });
-    }, 3000);
+    }, 2000);
   };
 
   const subtotal = getTotalPrice();
@@ -256,43 +270,53 @@ const Checkout: React.FC = () => {
                       <input
                         type="text"
                         value={customerData.firstName}
-                        onChange={(e) => handleCustomerDataChange('firstName', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                        onChange={(e) => {
+                          handleCustomerDataChange('firstName', e.target.value);
+                          if (formErrors.firstName) setFormErrors(prev => ({ ...prev, firstName: undefined }));
+                        }}
+                        className={`w-full px-4 py-3 border ${formErrors.firstName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent`}
                         placeholder="Tu nombre"
-                        required
                       />
+                      {formErrors.firstName && <p className="mt-1 text-sm text-red-500">{formErrors.firstName}</p>}
                     </div>
                     <div>
                       <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                        Apellido *
+                        Apellidos *
                       </label>
                       <input
                         type="text"
                         value={customerData.lastName}
-                        onChange={(e) => handleCustomerDataChange('lastName', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                        placeholder="Tu apellido"
-                        required
+                        onChange={(e) => {
+                          handleCustomerDataChange('lastName', e.target.value);
+                          if (formErrors.lastName) setFormErrors(prev => ({ ...prev, lastName: undefined }));
+                        }}
+                        className={`w-full px-4 py-3 border ${formErrors.lastName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent`}
+                        placeholder="Tus apellidos"
                       />
+                      {formErrors.lastName && <p className="mt-1 text-sm text-red-500">{formErrors.lastName}</p>}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                        Correo Electrónico *
+                        DNI *
                       </label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <input
-                          type="email"
-                          value={customerData.email}
-                          onChange={(e) => handleCustomerDataChange('email', e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                          placeholder="tu@email.com"
-                          required
+                          type="text"
+                          value={customerData.dni}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                            handleCustomerDataChange('dni', value);
+                            if (formErrors.dni) setFormErrors(prev => ({ ...prev, dni: undefined }));
+                          }}
+                          className={`w-full pl-10 pr-4 py-3 border ${formErrors.dni ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent`}
+                          placeholder="12345678"
                         />
                       </div>
+                      {formErrors.dni && <p className="mt-1 text-sm text-red-500">{formErrors.dni}</p>}
                     </div>
                     <div>
                       <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
@@ -303,12 +327,15 @@ const Checkout: React.FC = () => {
                         <input
                           type="tel"
                           value={customerData.phone}
-                          onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                          onChange={(e) => {
+                            handleCustomerDataChange('phone', e.target.value);
+                            if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: undefined }));
+                          }}
+                          className={`w-full pl-10 pr-4 py-3 border ${formErrors.phone ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent`}
                           placeholder="+51 999 999 999"
-                          required
                         />
                       </div>
+                      {formErrors.phone && <p className="mt-1 text-sm text-red-500">{formErrors.phone}</p>}
                     </div>
                   </div>
 
@@ -320,16 +347,35 @@ const Checkout: React.FC = () => {
                       <MapPin className="absolute left-3 top-4 h-5 w-5 text-gray-400" />
                       <textarea
                         value={customerData.address}
-                        onChange={(e) => handleCustomerDataChange('address', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent resize-vertical"
+                        onChange={(e) => {
+                          handleCustomerDataChange('address', e.target.value);
+                          if (formErrors.address) setFormErrors(prev => ({ ...prev, address: undefined }));
+                        }}
+                        className={`w-full pl-10 pr-4 py-3 border ${formErrors.address ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent resize-vertical`}
                         rows={3}
                         placeholder="Dirección completa para entrega"
-                        required
                       />
                     </div>
+                    {formErrors.address && <p className="mt-1 text-sm text-red-500">{formErrors.address}</p>}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                        Departamento *
+                      </label>
+                      <input
+                        type="text"
+                        value={customerData.department}
+                        onChange={(e) => {
+                          handleCustomerDataChange('department', e.target.value);
+                          if (formErrors.department) setFormErrors(prev => ({ ...prev, department: undefined }));
+                        }}
+                        className={`w-full px-4 py-3 border ${formErrors.department ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent`}
+                        placeholder="Lima"
+                      />
+                      {formErrors.department && <p className="mt-1 text-sm text-red-500">{formErrors.department}</p>}
+                    </div>
                     <div>
                       <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
                         Ciudad *
@@ -337,38 +383,14 @@ const Checkout: React.FC = () => {
                       <input
                         type="text"
                         value={customerData.city}
-                        onChange={(e) => handleCustomerDataChange('city', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                        placeholder="Lima"
-                        required
+                        onChange={(e) => {
+                          handleCustomerDataChange('city', e.target.value);
+                          if (formErrors.city) setFormErrors(prev => ({ ...prev, city: undefined }));
+                        }}
+                        className={`w-full px-4 py-3 border ${formErrors.city ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent`}
+                        placeholder="Miraflores"
                       />
-                    </div>
-                    <div>
-                      <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                        Código Postal
-                      </label>
-                      <input
-                        type="text"
-                        value={customerData.postalCode}
-                        onChange={(e) => handleCustomerDataChange('postalCode', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                        placeholder="15001"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                        País
-                      </label>
-                      <select
-                        value={customerData.country}
-                        onChange={(e) => handleCustomerDataChange('country', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                      >
-                        <option value="Perú">Perú</option>
-                        <option value="Colombia">Colombia</option>
-                        <option value="Ecuador">Ecuador</option>
-                        <option value="Bolivia">Bolivia</option>
-                      </select>
+                      {formErrors.city && <p className="mt-1 text-sm text-red-500">{formErrors.city}</p>}
                     </div>
                   </div>
                 </div>
@@ -404,68 +426,7 @@ const Checkout: React.FC = () => {
                         <div className="font-inter text-sm text-gray-500">Te enviaremos los datos bancarios por WhatsApp</div>
                       </div>
                     </label>
-
-                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-cream-50 transition-colors duration-200">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="card"
-                        checked={paymentData.method === 'card'}
-                        onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
-                        className="text-gold-500 focus:ring-gold-500"
-                      />
-                      <div className="ml-3">
-                        <div className="font-inter font-medium text-gray-900">Tarjeta de Crédito/Débito</div>
-                        <div className="font-inter text-sm text-gray-500">Pago seguro con Visa, Mastercard, American Express</div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-cream-50 transition-colors duration-200">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="cash"
-                        checked={paymentData.method === 'cash'}
-                        onChange={(e) => handlePaymentDataChange('method', e.target.value as any)}
-                        className="text-gold-500 focus:ring-gold-500"
-                      />
-                      <div className="ml-3">
-                        <div className="font-inter font-medium text-gray-900">Pago en Efectivo</div>
-                        <div className="font-inter text-sm text-gray-500">Pago contra entrega (solo Lima)</div>
-                      </div>
-                    </label>
                   </div>
-
-                  {/* Currency Selection for Card Payments */}
-                  {paymentData.method === 'card' && (
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h3 className="font-inter font-semibold text-blue-900 mb-3">Seleccionar Moneda</h3>
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="currency"
-                            value="PEN"
-                            checked={paymentData.currency === 'PEN'}
-                            onChange={(e) => handlePaymentDataChange('currency', e.target.value as any)}
-                            className="text-gold-500 focus:ring-gold-500"
-                          />
-                          <span className="ml-2 font-inter text-sm">Pagar en Soles (PEN)</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="currency"
-                            value="USD"
-                            checked={paymentData.currency === 'USD'}
-                            onChange={(e) => handlePaymentDataChange('currency', e.target.value as any)}
-                            className="text-gold-500 focus:ring-gold-500"
-                          />
-                          <span className="ml-2 font-inter text-sm">Pagar en Dólares (USD)</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Error Message */}
                   {paymentError && (
@@ -498,9 +459,9 @@ const Checkout: React.FC = () => {
                     <h3 className="font-inter font-semibold text-gray-900 mb-3">Información de Entrega</h3>
                     <div className="space-y-1 text-sm">
                       <p><span className="font-medium">Nombre:</span> {customerData.firstName} {customerData.lastName}</p>
-                      <p><span className="font-medium">Email:</span> {customerData.email}</p>
+                      <p><span className="font-medium">DNI:</span> {customerData.dni}</p>
                       <p><span className="font-medium">Teléfono:</span> {customerData.phone}</p>
-                      <p><span className="font-medium">Dirección:</span> {customerData.address}, {customerData.city}, {customerData.country}</p>
+                      <p><span className="font-medium">Dirección:</span> {customerData.address}, {customerData.city}, {customerData.department}, {customerData.country}</p>
                     </div>
                   </div>
 
@@ -508,9 +469,7 @@ const Checkout: React.FC = () => {
                   <div className="p-4 bg-cream-50 rounded-lg border border-beige-200">
                     <h3 className="font-inter font-semibold text-gray-900 mb-3">Método de Pago</h3>
                     <p className="text-sm">
-                      {paymentData.method === 'transfer' && 'Transferencia Bancaria'}
-                      {paymentData.method === 'card' && `Tarjeta de Crédito/Débito (${paymentData.currency})`}
-                      {paymentData.method === 'cash' && 'Pago en Efectivo'}
+                      Transferencia Bancaria
                     </p>
                   </div>
 
@@ -553,7 +512,6 @@ const Checkout: React.FC = () => {
                 <button
                   onClick={handleNextStep}
                   disabled={
-                    (currentStep === 1 && !validateStep1()) ||
                     (currentStep === 2 && !validateStep2())
                   }
                   className="flex items-center space-x-2 bg-gold-500 hover:bg-gold-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-md font-medium transition-colors duration-200"
@@ -659,25 +617,6 @@ const Checkout: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Niubiz Payment Modal */}
-      {showNiubizPayment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <NiubizPayment
-                amount={total}
-                currency={paymentData.currency || 'PEN'}
-                orderId={`order_${Date.now()}`}
-                customerEmail={customerData.email}
-                onSuccess={handleNiubizSuccess}
-                onError={handleNiubizError}
-                onCancel={handleNiubizCancel}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

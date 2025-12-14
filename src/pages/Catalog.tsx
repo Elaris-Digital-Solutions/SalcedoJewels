@@ -9,7 +9,9 @@ import ProductCard from '../components/ProductCard';
 const Catalog: React.FC = () => {
   const { products } = useProducts();
   const catalogRef = useScrollPosition();
-  const sortedProducts = products;
+  
+  // Filter out products with 0 stock
+  const sortedProducts = products.filter(product => product.stock > 0);
 
 
   return (
