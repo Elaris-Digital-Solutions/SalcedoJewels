@@ -1,6 +1,10 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -9,6 +13,26 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
+
+// Cloudinary config (server-side)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY || process.env.VITE_CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET || process.env.VITE_CLOUDINARY_API_SECRET
+});
+
+// Supabase admin client (server-side)
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+const supabaseAdmin = (() => {
+  if (!supabaseUrl) return null;
+  // Prefer service role key when available (recommended). Fallback to anon for dev.
+  const key = supabaseServiceKey || supabaseAnonKey;
+  if (!key) return null;
+  return createClient(supabaseUrl, key);
+})();
 
 // Simular variables de entorno para desarrollo
 process.env.NIUBIZ_MERCHANT_ID = '456879852';
@@ -25,7 +49,6 @@ process.env.NODE_ENV = 'development';
 // const sendEmail = require('./api/send-email.js');
 // const uploadImage = require('./api/upload-image.js');
 // const listDescriptions = require('./api/list-descriptions.js');
-const saveOrder = require('./api/save-order.js');
 
 // Rutas de API
 // app.post('/api/niubiz-session', niubizSession);
@@ -34,7 +57,86 @@ const saveOrder = require('./api/save-order.js');
 // app.post('/api/send-email', sendEmail);
 // app.post('/api/upload-image', uploadImage);
 // app.get('/api/list-descriptions', listDescriptions);
-app.post('/api/save-order', saveOrder);
+
+// Delete a product and its Cloudinary assets (by public_id)
+app.post('/api/delete-product', async (req, res) => {
+  try {
+    const { productId, invalidate } = req.body || {};
+    if (!productId) {
+      return res.status(400).json({ success: false, error: 'productId is required' });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ success: false, error: 'Supabase server client is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)' });
+    }
+
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY || process.env.VITE_CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || process.env.VITE_CLOUDINARY_API_SECRET;
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(500).json({ success: false, error: 'Cloudinary server credentials are not configured (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)' });
+    }
+
+    // 1) Read public_ids before deleting the product
+    const { data: images, error: imagesError } = await supabaseAdmin
+      .from('product_images')
+      .select('public_id')
+      .eq('product_id', productId);
+
+    if (imagesError) {
+      console.error('Error reading product_images:', imagesError);
+    }
+
+    const publicIds = (images || [])
+      .map(r => r.public_id)
+      .filter(Boolean);
+
+    // 2) Destroy assets in Cloudinary
+    const destroyResults = await Promise.allSettled(
+      publicIds.map((publicId) => cloudinary.uploader.destroy(publicId, {
+        resource_type: 'image',
+        invalidate: invalidate !== false
+      }))
+    );
+
+    const destroyed = [];
+    const destroyErrors = [];
+    destroyResults.forEach((r, idx) => {
+      if (r.status === 'fulfilled') {
+        destroyed.push({ public_id: publicIds[idx], result: r.value?.result || 'unknown' });
+      } else {
+        destroyErrors.push({ public_id: publicIds[idx], error: r.reason?.message || String(r.reason) });
+      }
+    });
+
+    // 3) Delete product (product_images should cascade if FK was created with ON DELETE CASCADE)
+    const { error: deleteError } = await supabaseAdmin
+      .from('products')
+      .delete()
+      .eq('id', productId);
+
+    if (deleteError) {
+      console.error('Error deleting product:', deleteError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete product in Supabase',
+        details: deleteError,
+        destroyed,
+        destroyErrors
+      });
+    }
+
+    return res.json({
+      success: true,
+      deletedProductId: productId,
+      destroyed,
+      destroyErrors
+    });
+  } catch (err) {
+    console.error('delete-product error:', err);
+    return res.status(500).json({ success: false, error: 'Internal error', message: err.message });
+  }
+});
 
 // Ruta para servir la aplicación React
 app.get('*', (req, res) => {

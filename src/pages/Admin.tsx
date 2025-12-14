@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Plus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Upload, Plus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import { Product, ProductCode } from '../types/Product';
@@ -7,13 +7,11 @@ import { Order } from '../types/Order';
 import { supabase } from '../supabaseClient';
 import AdminLogin from '../components/AdminLogin';
 
-// Agregar declaración global para window.cloudinary
-// @ts-ignore
-declare global {
-  interface Window {
-    cloudinary?: any;
-  }
-}
+type SelectedImage = {
+  file: File;
+  previewUrl: string;
+  filename: string;
+};
 
 const Admin: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
@@ -23,7 +21,10 @@ const Admin: React.FC = () => {
   const [productDescription, setProductDescription] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<{ filename: string, url: string }[]>([]);
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [mainUploadIndex, setMainUploadIndex] = useState(0);
+
+  const selectedImagesRef = useRef<SelectedImage[]>([]);
   
   // Order Management State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -37,6 +38,18 @@ const Admin: React.FC = () => {
   const [variants, setVariants] = useState<{size: string, stock: number}[]>([]);
   const [newVariantSize, setNewVariantSize] = useState('');
   const [newVariantStock, setNewVariantStock] = useState(1);
+
+  useEffect(() => {
+    selectedImagesRef.current = selectedImages;
+  }, [selectedImages]);
+
+  useEffect(() => {
+    return () => {
+      selectedImagesRef.current.forEach(img => {
+        if (img.previewUrl) URL.revokeObjectURL(img.previewUrl);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'orders') {
@@ -101,7 +114,7 @@ const Admin: React.FC = () => {
       const category = parts[0];
       const name = parts[1];
       const price = parseFloat(parts[2]);
-      const images = parts.slice(3).filter(part => part.includes('.'));
+      const images: string[] = [];
 
       // Map category numbers to names
       const categoryMap: { [key: string]: string } = {
@@ -135,9 +148,50 @@ const Admin: React.FC = () => {
     setVariants(variants.filter((_, i) => i !== index));
   };
 
-  const handleUploadProduct = () => {
+  const removeUploadedImage = (indexToRemove: number) => {
+    setSelectedImages(prev => {
+      const target = prev[indexToRemove];
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((_, i) => i !== indexToRemove);
+    });
+    setMainUploadIndex(prevMain => {
+      if (indexToRemove === prevMain) return 0;
+      if (indexToRemove < prevMain) return Math.max(0, prevMain - 1);
+      return prevMain;
+    });
+  };
+
+  const handleSelectImages = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const next: SelectedImage[] = Array.from(files)
+      .filter(f => f.type.startsWith('image/'))
+      .map((file) => ({
+        file,
+        previewUrl: URL.createObjectURL(file),
+        filename: file.name
+      }));
+
+    setSelectedImages(prev => {
+      // avoid duplicates by name+size+lastModified
+      const existingKeys = new Set(prev.map(p => `${p.file.name}:${p.file.size}:${p.file.lastModified}`));
+      const merged = [...prev];
+      for (const img of next) {
+        const key = `${img.file.name}:${img.file.size}:${img.file.lastModified}`;
+        if (!existingKeys.has(key)) merged.push(img);
+      }
+      return merged;
+    });
+  };
+
+  const handleUploadProduct = async () => {
     if (!productCode.trim() || !productDescription.trim()) {
       alert('Por favor, completa todos los campos');
+      return;
+    }
+
+    if (selectedImages.length === 0) {
+      alert('Por favor, sube al menos una imagen');
       return;
     }
 
@@ -147,18 +201,16 @@ const Admin: React.FC = () => {
       return;
     }
 
-    // Buscar las URLs de las imágenes subidas que coincidan con los nombres en el código
-    const imageUrls = parsedCode.images.map(imgName => {
-      const found = uploadedImages.find(img => img.filename === imgName);
-      return found ? found.url : '';
-    }).filter(Boolean);
-
     setIsUploading(true);
 
-    setTimeout(() => {
-      const totalStock = hasVariants 
+    try {
+      const totalStock = hasVariants
         ? variants.reduce((acc, curr) => acc + curr.stock, 0)
         : stock;
+
+      // 1) Crear el producto (confirmación) SIN subir imágenes aún.
+      //    Luego subimos imágenes y actualizamos el producto.
+      const placeholderImage = 'https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=800';
 
       const newProduct: Product = {
         id: Date.now().toString(),
@@ -166,24 +218,109 @@ const Admin: React.FC = () => {
         price: parsedCode.price,
         category: parsedCode.category,
         description: productDescription,
-        mainImage: imageUrls[0] || 'https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=800',
-        additionalImages: imageUrls.slice(1),
+        mainImage: placeholderImage,
+        additionalImages: [],
         featured: false,
         inStock: totalStock > 0,
         stock: totalStock,
         variants: hasVariants ? variants : undefined
       };
 
-      addProduct(newProduct);
+      const created = await addProduct(newProduct);
+
+      // 2) Subir imágenes a Cloudinary (solo después de que el producto ya fue creado)
+      const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+      const CLOUDINARY_FOLDER = import.meta.env.VITE_CLOUDINARY_FOLDER;
+
+      if (!CLOUD_NAME || !UPLOAD_PRESET) {
+        throw new Error('Falta configurar Cloudinary en el .env (VITE_CLOUDINARY_CLOUD_NAME / VITE_CLOUDINARY_UPLOAD_PRESET)');
+      }
+
+      const orderedSelection = (() => {
+        const safeMainIndex = Math.min(Math.max(mainUploadIndex, 0), selectedImages.length - 1);
+        const main = selectedImages[safeMainIndex];
+        const rest = selectedImages.filter((_, i) => i !== safeMainIndex);
+        return [main, ...rest];
+      })();
+
+      const uploadOne = async (img: SelectedImage) => {
+        const form = new FormData();
+        form.append('file', img.file);
+        form.append('upload_preset', UPLOAD_PRESET);
+        if (CLOUDINARY_FOLDER) form.append('folder', CLOUDINARY_FOLDER);
+
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+          method: 'POST',
+          body: form
+        });
+
+        const json = await res.json();
+        if (!res.ok) {
+          const message = json?.error?.message || 'Error subiendo imagen a Cloudinary';
+          throw new Error(message);
+        }
+
+        return {
+          secure_url: json.secure_url as string,
+          public_id: json.public_id as string,
+          format: json.format as string | undefined,
+          bytes: typeof json.bytes === 'number' ? json.bytes : undefined,
+          width: typeof json.width === 'number' ? json.width : undefined,
+          height: typeof json.height === 'number' ? json.height : undefined
+        };
+      };
+
+      const uploaded = await Promise.all(orderedSelection.map(uploadOne));
+      const urls = uploaded.map(u => u.secure_url);
+
+      // 3) Actualizar producto con URLs reales
+      await updateProduct(created.id, {
+        mainImage: urls[0] || placeholderImage,
+        additionalImages: urls.slice(1)
+      });
+
+      // 4) Insertar relación en product_images
+      const imagesToPersist = uploaded.map((img, index) => ({
+        product_id: created.id,
+        public_id: img.public_id,
+        secure_url: img.secure_url,
+        format: img.format || null,
+        bytes: img.bytes ?? null,
+        width: img.width ?? null,
+        height: img.height ?? null,
+        is_main: index === 0,
+        sort_order: index
+      }));
+
+      if (imagesToPersist.length > 0) {
+        const { error } = await supabase
+          .from('product_images')
+          .insert(imagesToPersist);
+
+        if (error) {
+          console.error('Error linking product_images:', error);
+        }
+      }
+
+      // Reset
       setProductCode('');
       setProductDescription('');
-      setUploadedImages([]);
+      setSelectedImages(prev => {
+        prev.forEach(img => img.previewUrl && URL.revokeObjectURL(img.previewUrl));
+        return [];
+      });
+      setMainUploadIndex(0);
       setHasVariants(false);
       setStock(1);
       setVariants([]);
-      setIsUploading(false);
       alert('Producto agregado exitosamente');
-    }, 2000);
+    } catch (error) {
+      console.error('Error creating product:', error);
+      alert('Error al crear el producto. Revisa la consola para más detalles.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDeleteProduct = (id: string) => {
@@ -206,54 +343,6 @@ const Admin: React.FC = () => {
   };
 
   const parsedCode = productCode ? parseProductCode(productCode) : null;
-
-  // Cloudinary Upload Widget
-  const CLOUD_NAME = 'dkxks0g3o';
-  const UPLOAD_PRESET = 'salcedo-jewels-direct'; // <-- nombre actualizado del preset
-
-  const CloudinaryUploadWidget: React.FC<{ onUpload: (url: string, info: any) => void }> = ({ onUpload }) => {
-    React.useEffect(() => {
-      if (!window.cloudinary) {
-        const script = document.createElement('script');
-        script.src = 'https://widget.cloudinary.com/v2.0/global/all.js';
-        script.async = true;
-        document.body.appendChild(script);
-      }
-    }, []);
-
-    const openWidget = () => {
-      if (!window.cloudinary) return;
-      const widget = window.cloudinary.createUploadWidget(
-        {
-          cloudName: CLOUD_NAME,
-          uploadPreset: UPLOAD_PRESET,
-          folder: 'salcedo-jewels/products',
-          multiple: true,
-          sources: ['local', 'url', 'camera'],
-          cropping: false,
-          maxFileSize: 8 * 1024 * 1024, 
-          clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-          maxFiles: 50
-        },
-        (error: any, result: any) => {
-          if (!error && result && result.event === 'success') {
-            onUpload(result.info.secure_url, result.info);
-          }
-        }
-      );
-      widget.open();
-    };
-
-    return (
-      <button
-        type="button"
-        onClick={openWidget}
-        className="bg-gold-500 text-white px-4 py-2 rounded mb-4"
-      >
-        Subir imágenes a Cloudinary
-      </button>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12">
@@ -326,15 +415,66 @@ const Admin: React.FC = () => {
             <h2 className="font-playfair text-2xl font-bold text-gray-900 mb-6">
               Subir Nuevo Producto
             </h2>
-            {/* Cloudinary Widget solo en la pestaña de subida */}
-            <CloudinaryUploadWidget
-              onUpload={(url, info) => {
-                setUploadedImages((prev) => [
-                  ...prev,
-                  { filename: info.original_filename + '.' + info.format, url }
-                ]);
-              }}
-            />
+            {/* Selección local (sube a Cloudinary SOLO al guardar producto) */}
+            <div className="mb-4">
+              <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                Imágenes del producto
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleSelectImages(e.target.files)}
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-cream-100 file:text-gold-800 hover:file:bg-cream-200"
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Las imágenes se subirán a Cloudinary cuando confirmes “Agregar Producto”.
+              </p>
+            </div>
+
+            {selectedImages.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-inter text-sm font-medium text-gray-700 mb-3">
+                  Imágenes seleccionadas ({selectedImages.length})
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {selectedImages.map((img, index) => (
+                    <div key={`${img.filename}-${img.file.size}-${img.file.lastModified}-${index}`} className="border border-beige-200 rounded-lg overflow-hidden bg-white">
+                      <div className="aspect-square overflow-hidden bg-gray-50">
+                        <img src={img.previewUrl} alt={img.filename} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="p-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setMainUploadIndex(index)}
+                            className={
+                              "text-xs px-2 py-1 rounded-full border transition-colors " +
+                              (index === mainUploadIndex
+                                ? 'bg-cream-200 text-gold-800 border-beige-300'
+                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50')
+                            }
+                          >
+                            {index === mainUploadIndex ? 'Principal' : 'Hacer principal'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeUploadedImage(index)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <p className="mt-2 text-[11px] text-gray-500 truncate" title={img.filename}>
+                          {img.filename}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="space-y-6">
               {/* Product Code Input */}
               <div>
@@ -346,11 +486,11 @@ const Admin: React.FC = () => {
                   id="productCode"
                   value={productCode}
                   onChange={(e) => setProductCode(e.target.value)}
-                  placeholder="2-AretesMariposaConBrillantes-1449.9-111.png-112.png"
+                  placeholder="2-AretesMariposaConBrillantes-1449.9"
                   className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                 />
                 <p className="mt-2 text-sm text-gray-500">
-                  Formato: [categoría]-[nombre]-[precio]-[imagen1.png]-[imagen2.png]
+                  Formato: [categoría]-[nombre]-[precio]
                 </p>
               </div>
 
@@ -364,7 +504,7 @@ const Admin: React.FC = () => {
                     <p><span className="font-medium">Categoría:</span> {parsedCode.category}</p>
                     <p><span className="font-medium">Nombre:</span> {parsedCode.name}</p>
                     <p><span className="font-medium">Precio:</span> ${parsedCode.price.toLocaleString()}</p>
-                    <p><span className="font-medium">Imágenes:</span> {parsedCode.images.length} archivo(s)</p>
+                    <p><span className="font-medium">Imágenes:</span> {selectedImages.length} seleccionada(s)</p>
                   </div>
                 </div>
               )}
@@ -484,7 +624,7 @@ const Admin: React.FC = () => {
                 {isUploading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Subiendo...</span>
+                    <span>Guardando...</span>
                   </>
                 ) : (
                   <>
