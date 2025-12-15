@@ -250,7 +250,11 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   const getMostExpensiveProducts = (limit: number = 3) => {
     return [...products]
       .filter(product => product.stock > 0)
-      .sort((a, b) => b.price - a.price)
+      .sort((a, b) => {
+        const priceDiff = b.price - a.price;
+        if (priceDiff !== 0) return priceDiff;
+        return a.name.localeCompare(b.name);
+      })
       .slice(0, limit);
   };
 
