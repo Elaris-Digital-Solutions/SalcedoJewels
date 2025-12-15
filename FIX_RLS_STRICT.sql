@@ -1,14 +1,11 @@
 -- Habilitar RLS en todas las tablas
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE product_variants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
 -- Eliminar políticas existentes para evitar conflictos
 DROP POLICY IF EXISTS "Public read access" ON products;
 DROP POLICY IF EXISTS "Admin full access" ON products;
-DROP POLICY IF EXISTS "Public read access" ON product_variants;
-DROP POLICY IF EXISTS "Admin full access" ON product_variants;
 DROP POLICY IF EXISTS "Public read access" ON product_images;
 DROP POLICY IF EXISTS "Admin full access" ON product_images;
 DROP POLICY IF EXISTS "Public read access" ON orders;
@@ -22,16 +19,6 @@ FOR SELECT TO anon, authenticated USING (true);
 
 -- Solo usuarios autenticados pueden insertar, actualizar o eliminar
 CREATE POLICY "Admin full access" ON products
-FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
-
--- POLÍTICAS PARA VARIANTES (product_variants)
--- Todo el mundo puede ver las variantes
-CREATE POLICY "Public read access" ON product_variants
-FOR SELECT TO anon, authenticated USING (true);
-
--- Solo usuarios autenticados pueden modificar
-CREATE POLICY "Admin full access" ON product_variants
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 

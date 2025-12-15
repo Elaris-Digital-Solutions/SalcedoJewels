@@ -15,6 +15,7 @@ export interface Product {
   inStock?: boolean;
   stock?: number;
   variants?: ProductVariant[];
+  sortOrder?: number;
 }
 
 export interface ProductCode {

@@ -7,7 +7,7 @@ import { useCart } from '../context/CartContext';
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { getProductById } = useProducts();
-  const { addToCart, isInCart, getItemQuantity, updateQuantity } = useCart();
+  const { addToCart, getItemQuantity, updateQuantity } = useCart();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -41,15 +41,15 @@ const ProductDetail: React.FC = () => {
   // Determine current stock based on selection
   const currentStock = hasVariants
     ? (selectedSize ? product.variants?.find(v => v.size === selectedSize)?.stock || 0 : 0)
-    : product.stock;
+    : (product.stock || 0);
 
   const isOutOfStock = hasVariants 
     ? (selectedSize ? currentStock === 0 : false) // If variant selected, check its stock. If not, wait for selection.
     : currentStock === 0;
 
   const canAddToCart = hasVariants
-    ? (selectedSize !== null && currentStock > 0)
-    : currentStock > 0;
+    ? (selectedSize !== null && currentStock > 0 && (cartQuantity + quantity <= currentStock))
+    : (currentStock > 0 && (cartQuantity + quantity <= currentStock));
 
   const handleAddToCart = () => {
     if (canAddToCart) {
@@ -281,7 +281,7 @@ const ProductDetail: React.FC = () => {
                     {hasVariants && !selectedSize
                       ? 'Selecciona una talla'
                       : !canAddToCart 
-                        ? 'Agotado' 
+                        ? (currentStock > 0 && cartQuantity >= currentStock ? 'Máximo alcanzado' : 'Agotado')
                         : cartQuantity > 0 
                           ? 'Agregar Más' 
                           : 'Agregar al Carrito'
@@ -340,12 +340,8 @@ const ProductDetail: React.FC = () => {
                   <span className="font-inter text-sm text-gray-600">
                     Envío seguro y asegurado
                   </span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <RotateCcw className="h-5 w-5 text-gold-500" />
-                  <span className="font-inter text-sm text-gray-600">
-                    Política de devolución de 30 días
-                  </span>
+                
+                
                 </div>
                 <div className="flex items-center space-x-3">
                   <CreditCard className="h-5 w-5 text-gold-500" />

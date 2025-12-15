@@ -7,6 +7,7 @@ interface ProductContextType {
   loading: boolean;
   addProduct: (product: Product) => Promise<Product>;
   updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  updateProductOrder: (products: Product[]) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Product | undefined;
   getFeaturedProducts: () => Product[];
@@ -37,7 +38,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
             created_at
           )
         `)
-        .order('sort_order', { foreignTable: 'product_images', ascending: true });
+        .order('sort_order', { ascending: true });
       
       if (error) throw error;
       
@@ -76,7 +77,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
             featured: item.featured,
             inStock: item.in_stock,
             stock: item.stock,
-            variants: item.variants
+            variants: item.variants,
+            sortOrder: item.sort_order
           };
         });
         setProducts(mappedProducts);
@@ -140,6 +142,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (updatedProduct.inStock !== undefined) dbUpdate.in_stock = updatedProduct.inStock;
       if (updatedProduct.stock !== undefined) dbUpdate.stock = updatedProduct.stock;
       if (updatedProduct.variants) dbUpdate.variants = updatedProduct.variants;
+      if (updatedProduct.sortOrder !== undefined) dbUpdate.sort_order = updatedProduct.sortOrder;
 
       const { error } = await supabase
         .from('products')
@@ -158,24 +161,81 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  const deleteProduct = async (id: string) => {
+  const updateProductOrder = async (orderedProducts: Product[]) => {
     try {
-      const res = await fetch('/api/delete-product', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ productId: id, invalidate: true })
-      });
+      // Update local state immediately for UI responsiveness
+      setProducts(orderedProducts);
 
-      if (!res.ok) {
-        const payload = await res.json().catch(() => null);
-        throw payload || new Error('No se pudo eliminar el producto');
+      // Update in Supabase
+      // We'll update each product's sort_order
+      // To be efficient, we could use an upsert if supported or multiple updates
+      // For now, we'll loop through. If there are many products, this might be slow.
+      // A better way is to use a stored procedure or a single upsert call.
+      // But given the constraints, we'll iterate.
+      
+      const updates = orderedProducts.map((product, index) => ({
+        id: product.id,
+        sort_order: index
+      }));
+
+      // Using upsert to update multiple rows at once if possible, 
+      // but Supabase upsert requires all required fields if it's a new row.
+      // Since these are existing rows, we can use upsert with just ID and the field to update?
+      // No, upsert replaces the row or inserts. It might clear other fields if not provided.
+      // So we should use `update` in a loop or a custom RPC.
+      // Let's try a loop for now, assuming not too many products.
+      
+      for (const update of updates) {
+        await supabase
+          .from('products')
+          .update({ sort_order: update.sort_order })
+          .eq('id', update.id);
       }
 
+    } catch (error) {
+      console.error('Error updating product order:', error);
+      // Revert local state if needed, or just alert
+      alert('Error al guardar el orden de los productos');
+      fetchProducts(); // Reload from server to sync
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    try {
+      // 1. Eliminar imágenes asociadas en la base de datos
+      // (Si hay ON DELETE CASCADE en la DB esto no sería estrictamente necesario, 
+      // pero lo hacemos para asegurar que no queden huérfanos si la config cambia)
+      const { error: imagesError } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', id);
+
+      if (imagesError) {
+        console.error('Error deleting product images:', imagesError);
+        throw new Error('Error al eliminar las imágenes del producto');
+      }
+
+      // 2. Eliminar el producto
+      const { error: productError } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (productError) {
+        console.error('Error deleting product:', productError);
+        throw new Error('Error al eliminar el producto de la base de datos');
+      }
+
+      // 3. Actualizar estado local
       setProducts(prev => prev.filter(product => product.id !== id));
+      
+      // Nota: Las imágenes permanecen en Cloudinary. 
+      // Para borrarlas también, se requeriría una función de servidor (Edge Function o Backend)
+      // que tenga las credenciales de administración de Cloudinary.
+      
     } catch (error) {
       console.error('Error deleting product:', error);
+      alert('No se pudo eliminar el producto. Verifica que tengas permisos de administrador.');
     }
   };
 
@@ -199,6 +259,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       products,
       addProduct,
       updateProduct,
+      updateProductOrder,
       deleteProduct,
       getProductById,
       getFeaturedProducts,

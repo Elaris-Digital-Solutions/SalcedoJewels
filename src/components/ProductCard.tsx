@@ -9,15 +9,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { addToCart, isInCart } = useCart();
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (product.inStock) {
-      addToCart(product);
-    }
-  };
+  const { isInCart } = useCart();
 
   return (
     <div className="group bg-white rounded-lg overflow-hidden shadow-sm border border-beige-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -32,21 +24,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <Link
               to={`/product/${product.id}`}
               className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-3 hover:bg-cream-50"
+              title="Ver Detalles"
             >
               <Eye className="h-5 w-5 text-gold-600" />
             </Link>
-            {product.inStock && (!product.variants || product.variants.length === 0) && (
-              <button
-                onClick={handleAddToCart}
-                className="bg-white bg-opacity-90 backdrop-blur-sm rounded-full p-3 hover:bg-cream-50"
-              >
-                {isInCart(product.id) ? (
-                  <Plus className="h-5 w-5 text-gold-600 group-hover:text-gold-700" />
-                ) : (
-                  <ShoppingBag className="h-5 w-5 text-gold-600" />
-                )}
-              </button>
-            )}
           </div>
         </div>
         {product.featured && (
@@ -87,23 +68,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             ${product.price.toLocaleString()}
           </span>
           <div className="flex space-x-2">
-            {product.inStock && (
-              <button
-                onClick={handleAddToCart}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                  isInCart(product.id)
-                    ? 'bg-green-500 hover:bg-green-600 text-white'
-                    : 'bg-gold-500 hover:bg-gold-600 text-white'
-                }`}
-              >
-                {isInCart(product.id) ? 'Agregado' : 'Agregar'}
-              </button>
-            )}
             <Link
               to={`/product/${product.id}`}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+              className="bg-gold-500 hover:bg-gold-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
             >
-              Ver
+              Ver Detalles
             </Link>
           </div>
         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, User, MapPin, Phone, Mail, Calendar, Lock, AlertCircle } from 'lucide-react';
+import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 
 interface CustomerData {
@@ -26,6 +27,7 @@ interface PaymentData {
 
 const Checkout: React.FC = () => {
   const { items, getTotalPrice, clearCart } = useCart();
+  const { updateProduct } = useProducts();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -185,6 +187,57 @@ const Checkout: React.FC = () => {
         console.log('Pedido guardado en Supabase exitosamente');
         // Actualizar el resumen con el código
         orderSummary.orderCode = orderCode;
+
+        // Actualizar stock de productos
+        for (const item of items) {
+          try {
+            // 1. Obtener el producto actual para asegurar datos frescos
+            const { data: productData, error: productError } = await supabase
+              .from('products')
+              .select('*')
+              .eq('id', item.product.id)
+              .single();
+
+            if (productError || !productData) {
+              console.error(`Error al obtener producto ${item.product.id}:`, productError);
+              continue;
+            }
+
+            let newStock = productData.stock;
+            let newVariants = productData.variants;
+            let newInStock = productData.in_stock;
+
+            // 2. Calcular nuevo stock
+            if (item.selectedSize && Array.isArray(newVariants)) {
+              // Es un producto con variantes
+              newVariants = newVariants.map((v: any) => {
+                if (v.size === item.selectedSize) {
+                  return { ...v, stock: Math.max(0, v.stock - item.quantity) };
+                }
+                return v;
+              });
+              
+              // Recalcular stock total basado en variantes
+              newStock = newVariants.reduce((acc: number, v: any) => acc + (v.stock || 0), 0);
+            } else {
+              // Producto simple
+              newStock = Math.max(0, productData.stock - item.quantity);
+            }
+
+            // 3. Determinar si sigue en stock
+            newInStock = newStock > 0;
+
+            // 4. Actualizar producto usando el contexto para mantener el estado local sincronizado
+            await updateProduct(item.product.id, {
+              stock: newStock,
+              variants: newVariants,
+              inStock: newInStock
+            });
+
+          } catch (err) {
+            console.error(`Error procesando stock para ${item.product.id}:`, err);
+          }
+        }
       }
     } catch (error) {
       console.error('Error inesperado:', error);

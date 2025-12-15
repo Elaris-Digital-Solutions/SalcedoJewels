@@ -1,11 +1,68 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Upload, Plus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, Plus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, GripVertical, LayoutGrid } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import { Product, ProductCode } from '../types/Product';
 import { Order } from '../types/Order';
 import { supabase } from '../supabaseClient';
 import AdminLogin from '../components/AdminLogin';
+import { productDescriptions } from '../data/productDescriptions';
+import {
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Item Component
+const SortableProductItem = ({ product }: { product: Product }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: product.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="bg-white p-2 rounded border border-gray-200 shadow-sm cursor-move hover:shadow-md transition-shadow relative group"
+    >
+      <div className="aspect-square bg-gray-100 rounded overflow-hidden mb-2">
+        <img 
+          src={product.mainImage} 
+          alt={product.name} 
+          className="w-full h-full object-cover pointer-events-none"
+        />
+      </div>
+      <div className="text-xs font-medium text-gray-900 truncate">{product.name}</div>
+      <div className="text-xs text-gray-500">${product.price}</div>
+      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-white/80 rounded p-1">
+        <GripVertical className="h-3 w-3 text-gray-600" />
+      </div>
+    </div>
+  );
+};
 
 type SelectedImage = {
   file: File;
@@ -14,11 +71,57 @@ type SelectedImage = {
 };
 
 const Admin: React.FC = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+  const { products, addProduct, updateProduct, deleteProduct, updateProductOrder } = useProducts();
   const { isAuthenticated, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'upload' | 'manage' | 'orders'>('upload');
-  const [productCode, setProductCode] = useState('');
-  const [productDescription, setProductDescription] = useState('');
+  const [activeTab, setActiveTab] = useState<'upload' | 'manage' | 'orders' | 'organize'>('upload');
+  
+  // Organize State
+  const [orderedProducts, setOrderedProducts] = useState<Product[]>([]);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  useEffect(() => {
+    setOrderedProducts(products);
+  }, [products]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setOrderedProducts((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleSaveOrder = async () => {
+    setIsSavingOrder(true);
+    try {
+      await updateProductOrder(orderedProducts);
+      alert('Orden actualizado correctamente');
+    } catch (error) {
+      console.error('Error saving order:', error);
+      alert('Error al guardar el orden');
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+  
+  // Product Form State
+  const [productName, setProductName] = useState('');
+  const [productPrice, setProductPrice] = useState('');
+  const [productCategory, setProductCategory] = useState('Anillos');
+  const [productDescription, setProductDescription] = useState(productDescriptions['Anillos'][0]);
+  const [descriptionIndex, setDescriptionIndex] = useState(0);
+  
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
@@ -38,6 +141,22 @@ const Admin: React.FC = () => {
   const [variants, setVariants] = useState<{size: string, stock: number}[]>([]);
   const [newVariantSize, setNewVariantSize] = useState('');
   const [newVariantStock, setNewVariantStock] = useState(1);
+
+  const handlePrevDescription = () => {
+    const list = productDescriptions[productCategory] || [];
+    if (list.length === 0) return;
+    const newIndex = (descriptionIndex - 1 + list.length) % list.length;
+    setDescriptionIndex(newIndex);
+    setProductDescription(list[newIndex]);
+  };
+
+  const handleNextDescription = () => {
+    const list = productDescriptions[productCategory] || [];
+    if (list.length === 0) return;
+    const newIndex = (descriptionIndex + 1) % list.length;
+    setDescriptionIndex(newIndex);
+    setProductDescription(list[newIndex]);
+  };
 
   useEffect(() => {
     selectedImagesRef.current = selectedImages;
@@ -75,6 +194,137 @@ const Admin: React.FC = () => {
     }
   };
 
+  const deleteOrderItem = async (order: Order, itemIndex: number) => {
+    if (!window.confirm('¿Estás seguro de eliminar este producto del pedido? El stock será restaurado.')) {
+      return;
+    }
+
+    try {
+      const item = order.items[itemIndex];
+      
+      // 1. Restaurar stock del producto
+      const { data: productData } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', item.product.id)
+        .single();
+
+      if (productData) {
+        let newStock = productData.stock;
+        let newVariants = productData.variants;
+        const quantityToRestore = item.quantity;
+        const sizeToRestore = item.selectedSize;
+
+        if (sizeToRestore && Array.isArray(newVariants)) {
+            newVariants = newVariants.map((v: any) => {
+              if (v.size === sizeToRestore) {
+                return { ...v, stock: (v.stock || 0) + quantityToRestore };
+              }
+              return v;
+            });
+            newStock = newVariants.reduce((acc: number, v: any) => acc + (v.stock || 0), 0);
+        } else {
+            newStock = (productData.stock || 0) + quantityToRestore;
+        }
+
+        await updateProduct(item.product.id, {
+          stock: newStock,
+          variants: newVariants,
+          inStock: newStock > 0
+        });
+      }
+
+      // 2. Actualizar pedido (remover item y recalcular total)
+      const newItems = order.items.filter((_, idx) => idx !== itemIndex);
+      
+      // Si no quedan items, quizás deberíamos eliminar el pedido completo o dejarlo vacío con total 0
+      // Aquí lo dejaremos vacío con total 0
+      const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * curr.product.price), 0);
+
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          items: newItems,
+          total_amount: newTotal
+        })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      // 3. Actualizar estado local
+      const updatedOrder = { ...order, items: newItems, total_amount: newTotal };
+      setOrders(orders.map(o => o.id === order.id ? updatedOrder : o));
+      if (selectedOrder?.id === order.id) setSelectedOrder(updatedOrder);
+
+      alert('Producto eliminado del pedido y stock restaurado.');
+
+    } catch (error) {
+      console.error('Error deleting order item:', error);
+      alert('Error al eliminar el producto del pedido');
+    }
+  };
+
+  const deleteOrder = async (order: Order) => {
+    if (!window.confirm('¿Estás seguro de eliminar este pedido? El stock de los productos será restaurado.')) {
+      return;
+    }
+
+    try {
+      // 1. Restaurar stock
+      for (const item of order.items as any[]) {
+        const { data: productData } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', item.product.id)
+          .single();
+
+        if (productData) {
+          let newStock = productData.stock;
+          let newVariants = productData.variants;
+          const quantityToRestore = item.quantity;
+          const sizeToRestore = item.selectedSize;
+
+          if (sizeToRestore && Array.isArray(newVariants)) {
+             newVariants = newVariants.map((v: any) => {
+                if (v.size === sizeToRestore) {
+                  return { ...v, stock: (v.stock || 0) + quantityToRestore };
+                }
+                return v;
+             });
+             newStock = newVariants.reduce((acc: number, v: any) => acc + (v.stock || 0), 0);
+          } else {
+             newStock = (productData.stock || 0) + quantityToRestore;
+          }
+
+          // Update product
+          await updateProduct(item.product.id, {
+            stock: newStock,
+            variants: newVariants,
+            inStock: newStock > 0
+          });
+        }
+      }
+
+      // 2. Eliminar pedido
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      // 3. Actualizar lista local
+      setOrders(orders.filter(o => o.id !== order.id));
+      if (selectedOrder?.id === order.id) setSelectedOrder(null);
+      
+      alert('Pedido eliminado y stock restaurado correctamente.');
+
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Error al eliminar el pedido');
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
@@ -105,36 +355,6 @@ const Admin: React.FC = () => {
     return <AdminLogin onLogin={() => {}} />;
   }
 
-  // Parse product code
-  const parseProductCode = (code: string): ProductCode | null => {
-    try {
-      const parts = code.split('-');
-      if (parts.length < 3) return null;
-
-      const category = parts[0];
-      const name = parts[1];
-      const price = parseFloat(parts[2]);
-      const images: string[] = [];
-
-      // Map category numbers to names
-      const categoryMap: { [key: string]: string } = {
-        '1': 'Anillos',
-        '2': 'Aretes',
-        '3': 'Collares',
-        '4': 'Pulseras',
-        '5': 'Conjuntos'
-      };
-
-      return {
-        category: categoryMap[category] || 'Otros',
-        name: name.replace(/([A-Z])/g, ' $1').trim(),
-        price,
-        images
-      };
-    } catch (error) {
-      return null;
-    }
-  };
 
   const handleAddVariant = () => {
     if (newVariantSize && newVariantStock > 0) {
@@ -185,19 +405,13 @@ const Admin: React.FC = () => {
   };
 
   const handleUploadProduct = async () => {
-    if (!productCode.trim() || !productDescription.trim()) {
+    if (!productName.trim() || !productPrice || !productDescription.trim()) {
       alert('Por favor, completa todos los campos');
       return;
     }
 
     if (selectedImages.length === 0) {
       alert('Por favor, sube al menos una imagen');
-      return;
-    }
-
-    const parsedCode = parseProductCode(productCode);
-    if (!parsedCode) {
-      alert('Código de producto inválido');
       return;
     }
 
@@ -214,9 +428,9 @@ const Admin: React.FC = () => {
 
       const newProduct: Product = {
         id: Date.now().toString(),
-        name: parsedCode.name,
-        price: parsedCode.price,
-        category: parsedCode.category,
+        name: productName,
+        price: parseFloat(productPrice),
+        category: productCategory,
         description: productDescription,
         mainImage: placeholderImage,
         additionalImages: [],
@@ -304,8 +518,13 @@ const Admin: React.FC = () => {
       }
 
       // Reset
-      setProductCode('');
-      setProductDescription('');
+      setProductName('');
+      setProductPrice('');
+      // Reset description to the first one of the current category
+      const defaultDesc = productDescriptions[productCategory]?.[0] || '';
+      setProductDescription(defaultDesc);
+      setDescriptionIndex(0);
+      
       setSelectedImages(prev => {
         prev.forEach(img => img.previewUrl && URL.revokeObjectURL(img.previewUrl));
         return [];
@@ -341,8 +560,6 @@ const Admin: React.FC = () => {
       logout();
     }
   };
-
-  const parsedCode = productCode ? parseProductCode(productCode) : null;
 
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12">
@@ -404,6 +621,17 @@ const Admin: React.FC = () => {
               >
                 <ShoppingBag className="h-4 w-4 inline mr-2" />
                 Pedidos
+              </button>
+              <button
+                onClick={() => setActiveTab('organize')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  activeTab === 'organize'
+                    ? 'border-gold-500 text-gold-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <LayoutGrid className="h-4 w-4 inline mr-2" />
+                Organizar Productos
               </button>
             </nav>
           </div>
@@ -476,52 +704,104 @@ const Admin: React.FC = () => {
               </div>
             )}
             <div className="space-y-6">
-              {/* Product Code Input */}
+              {/* Product Details Inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="productCategory" className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                    Categoría
+                  </label>
+                  <select
+                    id="productCategory"
+                    value={productCategory}
+                    onChange={(e) => {
+                      const newCategory = e.target.value;
+                      setProductCategory(newCategory);
+                      setDescriptionIndex(0);
+                      const list = productDescriptions[newCategory] || [];
+                      setProductDescription(list[0] || '');
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                  >
+                    <option value="Anillos">Anillos</option>
+                    <option value="Aretes">Aretes</option>
+                    <option value="Collares">Collares</option>
+                    <option value="Pulseras">Pulseras</option>
+                    <option value="Conjuntos">Conjuntos</option>
+                    <option value="Dijes">Dijes</option>
+                    <option value="Cadenas">Cadenas</option>
+                    <option value="Otros">Otros</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="productPrice" className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                    Precio (USD)
+                  </label>
+                  <input
+                    type="number"
+                    id="productPrice"
+                    value={productPrice}
+                    onChange={(e) => setProductPrice(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label htmlFor="productCode" className="block font-inter text-sm font-medium text-gray-700 mb-2">
-                  Código del Producto
+                <label htmlFor="productName" className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                  Nombre del Producto
                 </label>
                 <input
                   type="text"
-                  id="productCode"
-                  value={productCode}
-                  onChange={(e) => setProductCode(e.target.value)}
-                  placeholder="2-AretesMariposaConBrillantes-1449.9"
+                  id="productName"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                  placeholder="Ej: Anillo Brillante"
                 />
-                <p className="mt-2 text-sm text-gray-500">
-                  Formato: [categoría]-[nombre]-[precio]
-                </p>
               </div>
-
-              {/* Parsed Information Preview */}
-              {parsedCode && (
-                <div className="bg-cream-100 border border-beige-300 rounded-lg p-4">
-                  <h3 className="font-inter font-semibold text-gray-900 mb-3">
-                    Vista Previa del Producto:
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <p><span className="font-medium">Categoría:</span> {parsedCode.category}</p>
-                    <p><span className="font-medium">Nombre:</span> {parsedCode.name}</p>
-                    <p><span className="font-medium">Precio:</span> ${parsedCode.price.toLocaleString()}</p>
-                    <p><span className="font-medium">Imágenes:</span> {selectedImages.length} seleccionada(s)</p>
-                  </div>
-                </div>
-              )}
 
               {/* Product Description */}
               <div>
                 <label htmlFor="productDescription" className="block font-inter text-sm font-medium text-gray-700 mb-2">
                   Descripción del Producto
                 </label>
-                <textarea
-                  id="productDescription"
-                  value={productDescription}
-                  onChange={(e) => setProductDescription(e.target.value)}
-                  rows={4}
-                  placeholder="Descripción detallada del producto..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent resize-vertical"
-                />
+                <div className="relative">
+                  <textarea
+                    id="productDescription"
+                    value={productDescription}
+                    onChange={(e) => setProductDescription(e.target.value)}
+                    rows={4}
+                    placeholder="Descripción detallada del producto..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent resize-vertical"
+                  />
+                  <div className="flex justify-between items-center mt-2">
+                    <button
+                      type="button"
+                      onClick={handlePrevDescription}
+                      className="flex items-center text-sm text-gray-600 hover:text-gold-600 transition-colors"
+                      title="Descripción anterior"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Anterior
+                    </button>
+                    <span className="text-xs text-gray-400">
+                      Opción {descriptionIndex + 1} de {(productDescriptions[productCategory] || []).length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleNextDescription}
+                      className="flex items-center text-sm text-gray-600 hover:text-gold-600 transition-colors"
+                      title="Siguiente descripción"
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Stock and Variants Configuration */}
@@ -618,7 +898,7 @@ const Admin: React.FC = () => {
               {/* Upload Button */}
               <button
                 onClick={handleUploadProduct}
-                disabled={!productCode || !productDescription || isUploading}
+                disabled={!productName || !productPrice || !productDescription || isUploading}
                 className="w-full bg-gold-500 hover:bg-gold-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-md font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
               >
                 {isUploading ? (
@@ -1003,22 +1283,31 @@ const Admin: React.FC = () => {
                               </select>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <button
-                                onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
-                                className="text-gold-600 hover:text-gold-900 font-medium flex items-center"
-                              >
-                                {selectedOrder?.id === order.id ? (
-                                  <>
-                                    <ChevronUp className="h-4 w-4 mr-1" />
-                                    Ocultar
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronDown className="h-4 w-4 mr-1" />
-                                    Ver Detalles
-                                  </>
-                                )}
-                              </button>
+                              <div className="flex items-center space-x-3">
+                                <button
+                                  onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
+                                  className="text-gold-600 hover:text-gold-900 font-medium flex items-center"
+                                >
+                                  {selectedOrder?.id === order.id ? (
+                                    <>
+                                      <ChevronUp className="h-4 w-4 mr-1" />
+                                      Ocultar
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ChevronDown className="h-4 w-4 mr-1" />
+                                      Ver
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => deleteOrder(order)}
+                                  className="text-red-600 hover:text-red-900 font-medium flex items-center"
+                                  title="Eliminar pedido"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                           {selectedOrder?.id === order.id && (
@@ -1047,10 +1336,20 @@ const Admin: React.FC = () => {
                                           <div className="flex-1">
                                             <p className="font-medium text-gray-900">{item.product.name}</p>
                                             <p className="text-gray-500">Cant: {item.quantity} x $ {item.product.price}</p>
+                                            {item.selectedSize && <p className="text-xs text-gray-400">Talla: {item.selectedSize}</p>}
                                           </div>
-                                          <p className="font-bold text-gray-900">
-                                            $ {(item.quantity * item.product.price).toLocaleString()}
-                                          </p>
+                                          <div className="flex flex-col items-end space-y-1">
+                                            <p className="font-bold text-gray-900">
+                                              $ {(item.quantity * item.product.price).toLocaleString()}
+                                            </p>
+                                            <button 
+                                              onClick={() => deleteOrderItem(order, idx)}
+                                              className="text-red-500 hover:text-red-700 p-1"
+                                              title="Eliminar producto del pedido"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </button>
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
@@ -1066,6 +1365,54 @@ const Admin: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Organize Tab */}
+        {activeTab === 'organize' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-beige-200">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Organizar Productos</h3>
+                <p className="text-sm text-gray-500">Arrastra los productos para cambiar su orden en la tienda.</p>
+              </div>
+              <button
+                onClick={handleSaveOrder}
+                disabled={isSavingOrder}
+                className="bg-gold-500 hover:bg-gold-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+              >
+                {isSavingOrder ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Guardando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    <span>Guardar Orden</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
+              <DndContext 
+                sensors={sensors} 
+                collisionDetection={closestCenter} 
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext 
+                  items={orderedProducts.map(p => p.id)} 
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+                    {orderedProducts.map((product) => (
+                      <SortableProductItem key={product.id} product={product} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
           </div>
         )}
       </div>
