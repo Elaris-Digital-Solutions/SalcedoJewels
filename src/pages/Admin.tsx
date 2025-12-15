@@ -40,22 +40,35 @@ const SortableProductItem = ({ product }: { product: Product }) => {
     transition,
   };
 
+  const isOutOfStock = product.stock === 0;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white p-2 rounded border border-gray-200 shadow-sm cursor-move hover:shadow-md transition-shadow relative group"
+      className={`p-2 rounded border shadow-sm cursor-move hover:shadow-md transition-shadow relative group ${
+        isOutOfStock ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200'
+      }`}
     >
-      <div className="aspect-square bg-gray-100 rounded overflow-hidden mb-2">
+      <div className="aspect-square bg-gray-100 rounded overflow-hidden mb-2 relative">
         <img 
           src={product.mainImage} 
           alt={product.name} 
-          className="w-full h-full object-cover pointer-events-none"
+          className={`w-full h-full object-cover pointer-events-none ${isOutOfStock ? 'grayscale opacity-60' : ''}`}
         />
+        {isOutOfStock && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="bg-gray-800/70 text-white text-[10px] px-2 py-1 rounded-full font-medium">
+              Agotado
+            </span>
+          </div>
+        )}
       </div>
-      <div className="text-xs font-medium text-gray-900 truncate">{product.name}</div>
+      <div className={`text-xs font-medium truncate ${isOutOfStock ? 'text-gray-500' : 'text-gray-900'}`}>
+        {product.name}
+      </div>
       <div className="text-xs text-gray-500">${product.price}</div>
       <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-white/80 rounded p-1">
         <GripVertical className="h-3 w-3 text-gray-600" />
