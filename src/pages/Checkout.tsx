@@ -23,6 +23,7 @@ interface PaymentData {
   cvv: string;
   cardName: string;
   currency?: 'PEN' | 'USD';
+  installments: number;
 }
 
 const Checkout: React.FC = () => {
@@ -49,7 +50,8 @@ const Checkout: React.FC = () => {
     expiryDate: '',
     cvv: '',
     cardName: '',
-    currency: 'USD'
+    currency: 'USD',
+    installments: 1
   });
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -85,7 +87,7 @@ const Checkout: React.FC = () => {
     setCustomerData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handlePaymentDataChange = (field: keyof PaymentData, value: string) => {
+  const handlePaymentDataChange = (field: keyof PaymentData, value: string | number) => {
     setPaymentData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -175,6 +177,7 @@ const Checkout: React.FC = () => {
             items: items, // Supabase guardará esto como JSON si la columna es tipo JSON/JSONB
             total_amount: getTotalPrice(),
             payment_method: 'Transferencia Bancaria',
+            installments: paymentData.installments,
             status: 'Recibido'
           }
         ]);
@@ -479,6 +482,26 @@ const Checkout: React.FC = () => {
                         <div className="font-inter text-sm text-gray-500">Te enviaremos los datos bancarios por WhatsApp</div>
                       </div>
                     </label>
+
+                    {paymentData.method === 'transfer' && (
+                      <div className="ml-8 mt-2 p-4 bg-gray-50 rounded-md border border-gray-200">
+                        <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                          Número de Cuotas
+                        </label>
+                        <select
+                          value={paymentData.installments}
+                          onChange={(e) => handlePaymentDataChange('installments', parseInt(e.target.value))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                        >
+                          <option value="1">1 Cuota (Pago completo)</option>
+                          <option value="2">2 Cuotas</option>
+                          <option value="3">3 Cuotas</option>
+                        </select>
+                        <p className="mt-2 text-xs text-gray-500">
+                          * El pago en cuotas está sujeto a evaluación y coordinación directa.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Error Message */}

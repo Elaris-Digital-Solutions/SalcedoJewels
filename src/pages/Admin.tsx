@@ -1321,6 +1321,9 @@ const Admin: React.FC = () => {
                                       <p><span className="font-medium">Teléfono:</span> {order.customer_phone}</p>
                                       <p><span className="font-medium">Dirección:</span> {order.shipping_address}</p>
                                       <p><span className="font-medium">Método de Pago:</span> {order.payment_method}</p>
+                                      {order.installments && order.installments > 1 && (
+                                        <p><span className="font-medium">Cuotas:</span> {order.installments}</p>
+                                      )}
                                     </div>
                                   </div>
                                   <div>

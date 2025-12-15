@@ -45,7 +45,7 @@ ${orderSummary.items.map((item: any) =>
 ).join('\n')}
 
 *Total:* S/ ${orderSummary.total.toLocaleString()}
-*Método de Pago:* Transferencia Bancaria
+*Método de Pago:* Transferencia Bancaria${orderSummary.payment.installments > 1 ? `\n*Cuotas:* ${orderSummary.payment.installments} cuotas` : ''}
 
 Por favor, confirmen la disponibilidad y procedan con el siguiente paso. ¡Gracias!`;
 

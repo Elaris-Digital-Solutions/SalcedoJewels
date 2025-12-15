@@ -16,5 +16,6 @@ export interface Order {
   items: OrderItem[];
   total_amount: number;
   payment_method: string;
+  installments?: number;
   status: 'Recibido' | 'Confirmado' | 'En proceso' | 'Entregado';
 }
