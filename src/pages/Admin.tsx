@@ -7,6 +7,7 @@ import { Order } from '../types/Order';
 import { supabase } from '../supabaseClient';
 import AdminLogin from '../components/AdminLogin';
 import { productDescriptions } from '../data/productDescriptions';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
 import {
   DndContext, 
   closestCenter,
@@ -41,6 +42,7 @@ const SortableProductItem = ({ product }: { product: Product }) => {
   };
 
   const isOutOfStock = product.stock === 0;
+  const optimizedImage = getOptimizedImageUrl(product.mainImage, 150);
 
   return (
     <div
@@ -54,7 +56,7 @@ const SortableProductItem = ({ product }: { product: Product }) => {
     >
       <div className="aspect-square bg-gray-100 rounded overflow-hidden mb-2 relative">
         <img 
-          src={product.mainImage} 
+          src={optimizedImage} 
           alt={product.name} 
           className={`w-full h-full object-cover pointer-events-none ${isOutOfStock ? 'grayscale opacity-60' : ''}`}
         />
