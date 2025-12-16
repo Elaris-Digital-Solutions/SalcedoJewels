@@ -11,7 +11,7 @@ const Catalog: React.FC = () => {
   const catalogRef = useScrollPosition();
   
   // Filter out products with 0 stock
-  const sortedProducts = products.filter(product => product.stock > 0);
+  const sortedProducts = products.filter(product => (product.stock || 0) > 0);
 
 
   return (
@@ -29,9 +29,9 @@ const Catalog: React.FC = () => {
         {/* Products Grid */}
         {sortedProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sortedProducts.map((product) => (
+            {sortedProducts.map((product, index) => (
               <div key={product.id} className="animate-fade-in">
-                <ProductCard product={product} />
+                <ProductCard product={product} priority={index < 6} />
               </div>
             ))}
           </div>

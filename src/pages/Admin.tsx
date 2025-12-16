@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Upload, Plus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, GripVertical, LayoutGrid } from 'lucide-react';
+import { Upload, Plus, Minus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, GripVertical, LayoutGrid } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
-import { Product, ProductCode } from '../types/Product';
+import { Product } from '../types/Product';
 import { Order } from '../types/Order';
 import { supabase } from '../supabaseClient';
 import AdminLogin from '../components/AdminLogin';
@@ -1042,14 +1042,16 @@ const Admin: React.FC = () => {
                                     setEditingProduct({
                                       ...editingProduct, 
                                       variants: [], 
-                                      stock: 0 
+                                      stock: 0,
+                                      inStock: false
                                     });
                                   } else {
                                     // Switch to simple stock
                                     setEditingProduct({
                                       ...editingProduct, 
                                       variants: undefined,
-                                      stock: 0
+                                      stock: 0,
+                                      inStock: false
                                     });
                                   }
                                 }}
@@ -1064,12 +1066,49 @@ const Admin: React.FC = () => {
                                 // Simple Stock
                                 <div>
                                   <label className="block text-xs font-medium text-gray-700">Stock Total</label>
-                                  <input
-                                    type="number"
-                                    value={editingProduct.stock || 0}
-                                    onChange={(e) => setEditingProduct({...editingProduct, stock: parseInt(e.target.value) || 0})}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                                  />
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        const newStock = Math.max(0, (editingProduct.stock || 0) - 1);
+                                        setEditingProduct({
+                                          ...editingProduct,
+                                          stock: newStock,
+                                          inStock: newStock > 0
+                                        });
+                                      }}
+                                      className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                                      title="Restar stock"
+                                    >
+                                      <Minus className="h-3 w-3 text-gray-600" />
+                                    </button>
+                                    <input
+                                      type="number"
+                                      value={editingProduct.stock || 0}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value) || 0;
+                                        setEditingProduct({
+                                          ...editingProduct, 
+                                          stock: val,
+                                          inStock: val > 0
+                                        });
+                                      }}
+                                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent text-center"
+                                    />
+                                    <button
+                                      onClick={() => {
+                                        const newStock = (editingProduct.stock || 0) + 1;
+                                        setEditingProduct({
+                                          ...editingProduct,
+                                          stock: newStock,
+                                          inStock: newStock > 0
+                                        });
+                                      }}
+                                      className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                                      title="Sumar stock"
+                                    >
+                                      <Plus className="h-3 w-3 text-gray-600" />
+                                    </button>
+                                  </div>
                                 </div>
                             ) : (
                                 // Variants Editor
@@ -1086,26 +1125,70 @@ const Admin: React.FC = () => {
                                           newVariants[idx].size = e.target.value;
                                           setEditingProduct({...editingProduct, variants: newVariants});
                                         }}
-                                        className="w-1/2 px-2 py-1 text-xs border border-gray-300 rounded"
-                                      />
-                                      <input
-                                        type="number"
-                                        placeholder="Stock"
-                                        value={variant.stock}
-                                        onChange={(e) => {
-                                          const newVariants = [...(editingProduct.variants || [])];
-                                          newVariants[idx].stock = parseInt(e.target.value) || 0;
-                                          // Update total stock
-                                          const totalStock = newVariants.reduce((acc, curr) => acc + curr.stock, 0);
-                                          setEditingProduct({...editingProduct, variants: newVariants, stock: totalStock});
-                                        }}
                                         className="w-1/3 px-2 py-1 text-xs border border-gray-300 rounded"
                                       />
+                                      <div className="flex items-center gap-1 w-1/2">
+                                        <button
+                                          onClick={() => {
+                                            const newVariants = [...(editingProduct.variants || [])];
+                                            newVariants[idx].stock = Math.max(0, (newVariants[idx].stock || 0) - 1);
+                                            const totalStock = newVariants.reduce((acc, curr) => acc + curr.stock, 0);
+                                            setEditingProduct({
+                                              ...editingProduct, 
+                                              variants: newVariants, 
+                                              stock: totalStock,
+                                              inStock: totalStock > 0
+                                            });
+                                          }}
+                                          className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                                        >
+                                          <Minus className="h-3 w-3 text-gray-600" />
+                                        </button>
+                                        <input
+                                          type="number"
+                                          placeholder="Stock"
+                                          value={variant.stock}
+                                          onChange={(e) => {
+                                            const newVariants = [...(editingProduct.variants || [])];
+                                            newVariants[idx].stock = parseInt(e.target.value) || 0;
+                                            // Update total stock
+                                            const totalStock = newVariants.reduce((acc, curr) => acc + curr.stock, 0);
+                                            setEditingProduct({
+                                              ...editingProduct, 
+                                              variants: newVariants, 
+                                              stock: totalStock,
+                                              inStock: totalStock > 0
+                                            });
+                                          }}
+                                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                                        />
+                                        <button
+                                          onClick={() => {
+                                            const newVariants = [...(editingProduct.variants || [])];
+                                            newVariants[idx].stock = (newVariants[idx].stock || 0) + 1;
+                                            const totalStock = newVariants.reduce((acc, curr) => acc + curr.stock, 0);
+                                            setEditingProduct({
+                                              ...editingProduct, 
+                                              variants: newVariants, 
+                                              stock: totalStock,
+                                              inStock: totalStock > 0
+                                            });
+                                          }}
+                                          className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                                        >
+                                          <Plus className="h-3 w-3 text-gray-600" />
+                                        </button>
+                                      </div>
                                       <button
                                         onClick={() => {
                                           const newVariants = editingProduct.variants?.filter((_, i) => i !== idx);
                                           const totalStock = newVariants?.reduce((acc, curr) => acc + curr.stock, 0) || 0;
-                                          setEditingProduct({...editingProduct, variants: newVariants, stock: totalStock});
+                                          setEditingProduct({
+                                            ...editingProduct, 
+                                            variants: newVariants, 
+                                            stock: totalStock,
+                                            inStock: totalStock > 0
+                                          });
                                         }}
                                         className="text-red-500 hover:text-red-700"
                                       >

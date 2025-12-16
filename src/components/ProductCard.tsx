@@ -3,20 +3,25 @@ import { Link } from 'react-router-dom';
 import { Eye, ShoppingBag, Plus } from 'lucide-react';
 import { Product } from '../types/Product';
 import { useCart } from '../context/CartContext';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
 
 interface ProductCardProps {
   product: Product;
+  priority?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false }) => {
   const { isInCart } = useCart();
+  const optimizedImage = getOptimizedImageUrl(product.mainImage, 500);
 
   return (
     <div className="group bg-white rounded-lg overflow-hidden shadow-sm border border-beige-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
       <div className="relative aspect-square overflow-hidden">
         <img
-          src={product.mainImage}
+          src={optimizedImage}
           alt={product.name}
+          loading={priority ? "eager" : "lazy"}
+          {...(priority ? { fetchPriority: "high" } : {})}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
