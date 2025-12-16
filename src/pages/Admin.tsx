@@ -153,9 +153,10 @@ const Admin: React.FC = () => {
   // Product variants / stock state (must be declared before any early returns)
   const [hasVariants, setHasVariants] = useState(false);
   const [stock, setStock] = useState(1);
-  const [variants, setVariants] = useState<{size: string, stock: number}[]>([]);
+  const [variants, setVariants] = useState<{size: string, stock: number, price?: number}[]>([]);
   const [newVariantSize, setNewVariantSize] = useState('');
   const [newVariantStock, setNewVariantStock] = useState(1);
+  const [newVariantPrice, setNewVariantPrice] = useState('');
 
   const handlePrevDescription = () => {
     const list = productDescriptions[productCategory] || [];
@@ -373,9 +374,11 @@ const Admin: React.FC = () => {
 
   const handleAddVariant = () => {
     if (newVariantSize && newVariantStock > 0) {
-      setVariants([...variants, { size: newVariantSize, stock: newVariantStock }]);
+      const variantPrice = newVariantPrice ? parseFloat(newVariantPrice) : undefined;
+      setVariants([...variants, { size: newVariantSize, stock: newVariantStock, price: variantPrice }]);
       setNewVariantSize('');
       setNewVariantStock(1);
+      setNewVariantPrice('');
     }
   };
 
@@ -875,6 +878,20 @@ const Admin: React.FC = () => {
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                         />
                       </div>
+                      <div className="w-32">
+                        <label className="block font-inter text-sm font-medium text-gray-700 mb-2">
+                          Precio (Opcional)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={newVariantPrice}
+                          onChange={(e) => setNewVariantPrice(e.target.value)}
+                          placeholder="Default"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={handleAddVariant}
@@ -893,6 +910,7 @@ const Admin: React.FC = () => {
                               <div>
                                 <span className="font-medium text-gray-900">{variant.size}</span>
                                 <span className="text-gray-500 ml-2">({variant.stock} unidades)</span>
+                                {variant.price && <span className="text-gold-600 ml-2 font-medium">${variant.price}</span>}
                               </div>
                               <button
                                 type="button"
@@ -1127,9 +1145,20 @@ const Admin: React.FC = () => {
                                           newVariants[idx].size = e.target.value;
                                           setEditingProduct({...editingProduct, variants: newVariants});
                                         }}
-                                        className="w-1/3 px-2 py-1 text-xs border border-gray-300 rounded"
+                                        className="w-1/4 px-2 py-1 text-xs border border-gray-300 rounded"
                                       />
-                                      <div className="flex items-center gap-1 w-1/2">
+                                      <input
+                                        type="number"
+                                        placeholder="Precio"
+                                        value={variant.price || ''}
+                                        onChange={(e) => {
+                                          const newVariants = [...(editingProduct.variants || [])];
+                                          newVariants[idx].price = e.target.value ? parseFloat(e.target.value) : undefined;
+                                          setEditingProduct({...editingProduct, variants: newVariants});
+                                        }}
+                                        className="w-1/4 px-2 py-1 text-xs border border-gray-300 rounded"
+                                      />
+                                      <div className="flex items-center gap-1 w-1/3">
                                         <button
                                           onClick={() => {
                                             const newVariants = [...(editingProduct.variants || [])];

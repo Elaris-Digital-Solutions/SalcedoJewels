@@ -89,7 +89,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const getTotalPrice = () => {
-    return items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+    return items.reduce((total, item) => {
+      let price = item.product.price;
+      if (item.selectedSize && item.product.variants) {
+        const variant = item.product.variants.find(v => v.size === item.selectedSize);
+        if (variant && variant.price) {
+          price = variant.price;
+        }
+      }
+      return total + (price * item.quantity);
+    }, 0);
   };
 
   const isInCart = (productId: string, size?: string) => {

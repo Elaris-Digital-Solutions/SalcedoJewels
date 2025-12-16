@@ -1,6 +1,7 @@
 export interface ProductVariant {
   size: string;
   stock: number;
+  price?: number;
 }
 
 export interface Product {

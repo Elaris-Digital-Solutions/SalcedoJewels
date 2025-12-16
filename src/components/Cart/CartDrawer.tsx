@@ -60,8 +60,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               </div>
             ) : (
               <div className="space-y-4">
-                {items.map((item) => (
-                  <div key={item.product.id} className="flex items-center space-x-4 p-4 border border-beige-200 rounded-lg">
+                {items.map((item) => {
+                  const variant = item.selectedSize && item.product.variants 
+                    ? item.product.variants.find(v => v.size === item.selectedSize)
+                    : null;
+                  const price = variant && variant.price ? variant.price : item.product.price;
+
+                  return (
+                  <div key={`${item.product.id}-${item.selectedSize || 'default'}`} className="flex items-center space-x-4 p-4 border border-beige-200 rounded-lg">
                     <div className="w-16 h-16 bg-cream-50 rounded-md overflow-hidden flex-shrink-0">
                       <img
                         src={item.product.mainImage}
@@ -76,9 +82,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       </h4>
                       <p className="font-inter text-sm text-gray-500">
                         {item.product.category}
+                        {item.selectedSize && <span className="ml-1 text-xs bg-gray-100 px-1 rounded">Talla: {item.selectedSize}</span>}
                       </p>
                       <p className="font-playfair font-bold text-gold-600">
-                        ${item.product.price.toLocaleString()}
+                        ${price.toLocaleString()}
                       </p>
                     </div>
 
@@ -86,7 +93,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       {/* Quantity Controls */}
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedSize)}
                           className="p-1 hover:bg-cream-100 rounded-full transition-colors duration-200"
                         >
                           <Minus className="h-4 w-4 text-gray-500" />
@@ -95,7 +102,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedSize)}
                           className="p-1 hover:bg-cream-100 rounded-full transition-colors duration-200"
                         >
                           <Plus className="h-4 w-4 text-gray-500" />
@@ -104,14 +111,15 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
                       {/* Remove Button */}
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => removeFromCart(item.product.id, item.selectedSize)}
                         className="p-1 hover:bg-red-100 rounded-full transition-colors duration-200"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

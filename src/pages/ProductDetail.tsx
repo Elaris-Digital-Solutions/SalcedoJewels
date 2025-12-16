@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, Share2, ShoppingBag, Truck, Shield, RotateCcw, CreditCard, CheckCircle, XCircle, Plus, Minus } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
@@ -14,6 +14,13 @@ const ProductDetail: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
   const product = id ? getProductById(id) : undefined;
+
+  useEffect(() => {
+    if (product?.variants && product.variants.length > 0) {
+      setSelectedSize(product.variants[0].size);
+    }
+  }, [product]);
+
   const cartQuantity = product ? getItemQuantity(product.id, selectedSize || undefined) : 0;
 
   if (!product) {
@@ -38,10 +45,18 @@ const ProductDetail: React.FC = () => {
   const allImages = [product.mainImage, ...product.additionalImages];
   const hasVariants = product.variants && product.variants.length > 0;
 
-  // Determine current stock based on selection
+  // Determine current stock and price based on selection
+  const selectedVariant = hasVariants && selectedSize 
+    ? product.variants?.find(v => v.size === selectedSize) 
+    : null;
+
   const currentStock = hasVariants
-    ? (selectedSize ? product.variants?.find(v => v.size === selectedSize)?.stock || 0 : 0)
+    ? (selectedVariant?.stock || 0)
     : (product.stock || 0);
+
+  const currentPrice = hasVariants && selectedVariant?.price
+    ? selectedVariant.price
+    : product.price;
 
   const isOutOfStock = hasVariants 
     ? (selectedSize ? currentStock === 0 : false) // If variant selected, check its stock. If not, wait for selection.
@@ -132,7 +147,7 @@ const ProductDetail: React.FC = () => {
               </h1>
               <div className="flex items-center justify-between mb-4">
                 <span className="font-playfair text-3xl font-bold text-gold-600">
-                  ${product.price.toLocaleString()}
+                  ${currentPrice.toLocaleString()}
                 </span>
                 {/* Stock Status */}
                 <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border ${
