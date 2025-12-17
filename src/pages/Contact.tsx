@@ -56,16 +56,23 @@ const Contact: React.FC = () => {
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12 relative">
       <SEO title={routeSEO.contact.title} description={routeSEO.contact.description} url={routeSEO.contact.path} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="font-playfair text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Contáctanos
+
+      {/* Hero */}
+      <section className="relative overflow-hidden mb-16">
+        <div className="absolute inset-0 bg-gradient-to-r from-gold-500 via-gold-600 to-gold-700 opacity-95"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=1600')] bg-cover bg-center opacity-10"></div>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-white">
+          <p className="uppercase tracking-[0.2em] text-xs font-semibold mb-3">Hablemos</p>
+          <h1 className="font-playfair text-4xl md:text-5xl font-bold leading-tight mb-4">
+            Contáctanos por WhatsApp o correo
           </h1>
-          <p className="font-inter text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Estamos aquí para ayudarte a encontrar la pieza perfecta o responder cualquier pregunta
+          <p className="font-inter text-lg md:text-xl text-cream-50 max-w-3xl">
+            Asesoría personalizada, citas privadas y respuestas rápidas sobre nuestras piezas exclusivas.
           </p>
         </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Contact Information */}

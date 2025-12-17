@@ -19,16 +19,28 @@ const Catalog: React.FC = () => {
   return (
     <div ref={catalogRef} className="min-h-screen bg-cream-25 pt-24 pb-12">
       <SEO title={routeSEO.catalog.title} description={routeSEO.catalog.description} url={routeSEO.catalog.path} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="font-playfair text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Catálogo de Joyas
-          </h1>
-          <p className="font-inter text-lg text-gray-600 max-w-2xl mx-auto">
-            Explora nuestra exclusiva colección de joyería en oro italiano de 18k
-          </p>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden mb-12">
+        <div className="absolute inset-0 bg-gradient-to-r from-gold-500 via-gold-600 to-gold-700 opacity-95"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=1600')] bg-cover bg-center opacity-10"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-white">
+          <div className="max-w-3xl">
+            <p className="uppercase tracking-[0.2em] text-sm font-semibold mb-3 text-white/80">Nueva colección</p>
+            <h1 className="font-playfair text-4xl md:text-5xl font-bold leading-tight mb-4">
+              Catálogo de joyas en oro 18k
+            </h1>
+            <p className="font-inter text-lg md:text-xl text-cream-50 mb-6">
+              Explora anillos, aretes, collares y pulseras con elegancia atemporal, seleccionados para destacar.
+            </p>
+            <a href="#catalogo-grid" className="inline-flex items-center px-5 py-3 bg-white text-gold-700 rounded-md font-medium shadow hover:shadow-lg transition-all duration-200">
+              Ver piezas disponibles
+            </a>
+          </div>
         </div>
+      </section>
+
+      <div id="catalogo-grid" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Products Grid */}
         {sortedProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

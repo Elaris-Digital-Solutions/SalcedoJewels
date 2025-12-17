@@ -7,16 +7,23 @@ const About: React.FC = () => {
   return (
     <div className="min-h-screen bg-white pt-24 pb-12">
       <SEO title={routeSEO.about.title} description={routeSEO.about.description} url={routeSEO.about.path} />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="font-playfair text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Sobre Nosotros
+
+      {/* Hero */}
+      <section className="relative overflow-hidden mb-16">
+        <div className="absolute inset-0 bg-gradient-to-r from-gold-500 via-gold-600 to-gold-700 opacity-95"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=1600')] bg-cover bg-center opacity-10"></div>
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 text-white">
+          <p className="uppercase tracking-[0.18em] text-xs font-semibold mb-3 text-white/80">Nuestra esencia</p>
+          <h1 className="font-playfair text-4xl md:text-5xl font-bold leading-tight mb-4">
+            La historia detrás de Salcedo Jewels
           </h1>
-          <p className="font-inter text-xl text-gray-600 leading-relaxed">
-            La historia detrás de Salcedo Jewels y nuestro compromiso con la excelencia
+          <p className="font-inter text-lg md:text-xl text-cream-50 max-w-3xl">
+            Piezas atemporales creadas con detalle artesanal y pensadas para acompañar momentos únicos.
           </p>
         </div>
+      </section>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Story Section */}
         <div className="mb-16">

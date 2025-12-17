@@ -62,18 +62,26 @@ const OrderTracking: React.FC = () => {
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12">
       <SEO title="Seguimiento de Pedido" description="Consulta el estado de tu pedido" url="/tracking" noindex />
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <h1 className="font-playfair text-4xl font-bold text-gray-900 mb-4">
-            Seguimiento de Pedido
+
+      {/* Hero */}
+      <section className="relative overflow-hidden mb-10">
+        <div className="absolute inset-0 bg-gradient-to-r from-gold-500 via-gold-600 to-gold-700 opacity-95"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=1600')] bg-cover bg-center opacity-10"></div>
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-white">
+          <p className="uppercase tracking-[0.2em] text-xs font-semibold mb-3 text-white/80">Estado en línea</p>
+          <h1 className="font-playfair text-4xl md:text-5xl font-bold leading-tight mb-3">
+            Seguimiento de tu pedido
           </h1>
-          <p className="font-inter text-gray-600">
-            Ingresa el código de tu pedido para ver su estado actual
+          <p className="font-inter text-lg text-cream-50 max-w-3xl">
+            Ingresa tu código y revisa el avance de preparación, envío y entrega con una vista clara y rápida.
           </p>
         </div>
+      </section>
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Search Box */}
-        <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-8 mb-8">
+        <div className="bg-white rounded-lg shadow-md border border-gold-100 ring-1 ring-gold-50 p-8 mb-8 transition-shadow duration-200">
           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <input
@@ -109,7 +117,7 @@ const OrderTracking: React.FC = () => {
 
         {/* Order Status Result */}
         {order && (
-          <div className="bg-white rounded-lg shadow-sm border border-beige-200 p-8 animate-fade-in">
+          <div className="bg-white rounded-lg shadow-md border border-gold-100 ring-1 ring-gold-50 p-8 animate-fade-in">
             <div className="flex justify-between items-start mb-8 border-b border-beige-100 pb-6">
               <div>
                 <h2 className="font-playfair text-2xl font-bold text-gray-900 mb-2">
