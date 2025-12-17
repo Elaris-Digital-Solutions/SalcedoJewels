@@ -1024,6 +1024,9 @@ const Admin: React.FC = () => {
                               <option value="Collares">Collares</option>
                               <option value="Pulseras">Pulseras</option>
                               <option value="Conjuntos">Conjuntos</option>
+                              <option value="Dijes">Dijes</option>
+                              <option value="Cadenas">Cadenas</option>
+                              <option value="Otros">Otros</option>
                             </select>
                           </div>
 
