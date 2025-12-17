@@ -137,7 +137,8 @@ const Admin: React.FC = () => {
   const [productDescription, setProductDescription] = useState(productDescriptions['Anillos'][0]);
   const [descriptionIndex, setDescriptionIndex] = useState(0);
   
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [mainUploadIndex, setMainUploadIndex] = useState(0);
@@ -374,7 +375,10 @@ const Admin: React.FC = () => {
 
   const handleAddVariant = () => {
     if (newVariantSize && newVariantStock > 0) {
-      const variantPrice = newVariantPrice ? parseFloat(newVariantPrice) : undefined;
+      let variantPrice: number | undefined = undefined;
+      if (newVariantPrice && !isNaN(parseFloat(newVariantPrice))) {
+        variantPrice = parseFloat(newVariantPrice);
+      }
       setVariants([...variants, { size: newVariantSize, stock: newVariantStock, price: variantPrice }]);
       setNewVariantSize('');
       setNewVariantStock(1);
@@ -568,7 +572,20 @@ const Admin: React.FC = () => {
 
   const handleSaveEdit = () => {
     if (editingProduct) {
-      updateProduct(editingProduct.id, editingProduct);
+      const productToSave = {
+        ...editingProduct,
+        price: (typeof editingProduct.price === 'string' && !isNaN(parseFloat(editingProduct.price))) 
+          ? parseFloat(editingProduct.price) 
+          : (typeof editingProduct.price === 'number' ? editingProduct.price : 0),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        variants: editingProduct.variants?.map((v: any) => ({
+          ...v,
+          price: (v.price !== undefined && v.price !== '' && !isNaN(parseFloat(v.price.toString()))) 
+            ? parseFloat(v.price.toString()) 
+            : undefined
+        }))
+      };
+      updateProduct(editingProduct.id, productToSave);
       setEditingProduct(null);
     }
   };
@@ -756,14 +773,18 @@ const Admin: React.FC = () => {
                     Precio (USD)
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     id="productPrice"
                     value={productPrice}
-                    onChange={(e) => setProductPrice(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/,/g, '.');
+                      if (/^\d*\.?\d*$/.test(val)) {
+                        setProductPrice(val);
+                      }
+                    }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                     placeholder="0.00"
-                    min="0"
-                    step="0.01"
                   />
                 </div>
               </div>
@@ -883,11 +904,15 @@ const Admin: React.FC = () => {
                           Precio (Opcional)
                         </label>
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           value={newVariantPrice}
-                          onChange={(e) => setNewVariantPrice(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/,/g, '.');
+                            if (/^\d*\.?\d*$/.test(val)) {
+                              setNewVariantPrice(val);
+                            }
+                          }}
                           placeholder="Default"
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                         />
@@ -1004,9 +1029,15 @@ const Admin: React.FC = () => {
                           <div>
                             <label className="block text-xs font-medium text-gray-700">Precio ($)</label>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               value={editingProduct.price}
-                              onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})}
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/,/g, '.');
+                                if (/^\d*\.?\d*$/.test(val)) {
+                                  setEditingProduct({...editingProduct, price: val});
+                                }
+                              }}
                               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                             />
                           </div>
@@ -1151,13 +1182,17 @@ const Admin: React.FC = () => {
                                         className="w-1/4 px-2 py-1 text-xs border border-gray-300 rounded"
                                       />
                                       <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         placeholder="Precio"
                                         value={variant.price || ''}
                                         onChange={(e) => {
-                                          const newVariants = [...(editingProduct.variants || [])];
-                                          newVariants[idx].price = e.target.value ? parseFloat(e.target.value) : undefined;
-                                          setEditingProduct({...editingProduct, variants: newVariants});
+                                          const val = e.target.value.replace(/,/g, '.');
+                                          if (/^\d*\.?\d*$/.test(val)) {
+                                            const newVariants = [...(editingProduct.variants || [])];
+                                            newVariants[idx].price = val === '' ? undefined : val;
+                                            setEditingProduct({...editingProduct, variants: newVariants});
+                                          }
                                         }}
                                         className="w-1/4 px-2 py-1 text-xs border border-gray-300 rounded"
                                       />
