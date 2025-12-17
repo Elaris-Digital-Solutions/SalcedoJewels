@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import SEO from '../components/SEO';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, User, MapPin, Phone, Mail, Calendar, Lock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Shield, CheckCircle, User, MapPin, Phone, Mail, Calendar, Lock, AlertCircle } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 
@@ -257,8 +257,7 @@ const Checkout: React.FC = () => {
   };
 
   const subtotal = getTotalPrice();
-  const shipping = subtotal > 2000 ? 0 : 50; // Free shipping over $2000
-  const total = subtotal + shipping;
+  const total = subtotal;
 
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12">
@@ -660,12 +659,6 @@ const Checkout: React.FC = () => {
                     ${subtotal.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-inter text-sm text-gray-600">Envío</span>
-                  <span className="font-inter text-sm font-medium text-gray-900">
-                    {shipping === 0 ? 'Gratis' : `$${shipping}`}
-                  </span>
-                </div>
                 <div className="flex justify-between pt-3 border-t border-beige-200">
                   <span className="font-playfair text-lg font-bold text-gray-900">Total</span>
                   <span className="font-playfair text-lg font-bold text-gold-600">
@@ -680,10 +673,6 @@ const Checkout: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <Shield className="h-4 w-4 text-green-500" />
                     <span className="font-inter text-xs text-gray-600">Compra 100% segura</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Truck className="h-4 w-4 text-blue-500" />
-                    <span className="font-inter text-xs text-gray-600">Envío asegurado</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="h-4 w-4 text-gold-500" />
