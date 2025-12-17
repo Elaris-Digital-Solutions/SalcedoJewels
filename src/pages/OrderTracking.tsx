@@ -137,8 +137,8 @@ const OrderTracking: React.FC = () => {
 
             {/* Status Timeline */}
             <div className="relative">
-              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
-              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-gold-500 -z-10 transition-all duration-1000" style={{ width: `${((currentStep - 1) / 3) * 100}%` }}></div>
+              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 z-0 pointer-events-none"></div>
+              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-gold-500 z-10 transition-all duration-1000 pointer-events-none" style={{ width: `${((currentStep - 1) / 3) * 100}%` }}></div>
               
               <div className="flex justify-between">
                 {[
@@ -152,7 +152,7 @@ const OrderTracking: React.FC = () => {
                   const isCurrent = currentStep === s.step;
                   
                   return (
-                    <div key={s.step} className="flex flex-col items-center bg-white px-2">
+                    <div key={s.step} className="relative z-20 flex flex-col items-center px-2">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors duration-300 ${
                         isActive 
                           ? 'bg-gold-500 border-gold-500 text-white' 
