@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import SEO from '../components/SEO';
 import { Upload, Plus, Minus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, GripVertical, LayoutGrid } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
@@ -674,6 +675,7 @@ const Admin: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12">
+      <SEO title="Admin" description="Panel de administración" url="/admin" noindex />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex justify-between items-start">
@@ -1283,7 +1285,8 @@ const Admin: React.FC = () => {
                                 // Variants Editor
                                 <div className="space-y-2">
                                   <label className="block text-xs font-medium text-gray-700">Variantes</label>
-                                  {editingProduct.variants?.map((variant, idx) => (
+                                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                  {editingProduct.variants?.map((variant: any, idx: number) => (
                                     <div key={idx} className="flex gap-2 items-center">
                                       <input
                                         type="text"
@@ -1316,7 +1319,8 @@ const Admin: React.FC = () => {
                                           onClick={() => {
                                             const newVariants = [...(editingProduct.variants || [])];
                                             newVariants[idx].stock = Math.max(0, (newVariants[idx].stock || 0) - 1);
-                                            const totalStock = newVariants.reduce((acc, curr) => acc + curr.stock, 0);
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                            const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
                                             setEditingProduct({
                                               ...editingProduct, 
                                               variants: newVariants, 
@@ -1336,7 +1340,8 @@ const Admin: React.FC = () => {
                                             const newVariants = [...(editingProduct.variants || [])];
                                             newVariants[idx].stock = parseInt(e.target.value) || 0;
                                             // Update total stock
-                                            const totalStock = newVariants.reduce((acc, curr) => acc + curr.stock, 0);
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                            const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
                                             setEditingProduct({
                                               ...editingProduct, 
                                               variants: newVariants, 
@@ -1350,7 +1355,8 @@ const Admin: React.FC = () => {
                                           onClick={() => {
                                             const newVariants = [...(editingProduct.variants || [])];
                                             newVariants[idx].stock = (newVariants[idx].stock || 0) + 1;
-                                            const totalStock = newVariants.reduce((acc, curr) => acc + curr.stock, 0);
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                            const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
                                             setEditingProduct({
                                               ...editingProduct, 
                                               variants: newVariants, 
@@ -1365,8 +1371,10 @@ const Admin: React.FC = () => {
                                       </div>
                                       <button
                                         onClick={() => {
-                                          const newVariants = editingProduct.variants?.filter((_, i) => i !== idx);
-                                          const totalStock = newVariants?.reduce((acc, curr) => acc + curr.stock, 0) || 0;
+                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                          const newVariants = editingProduct.variants?.filter((_: any, i: number) => i !== idx);
+                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                          const totalStock = newVariants?.reduce((acc: number, curr: any) => acc + curr.stock, 0) || 0;
                                           setEditingProduct({
                                             ...editingProduct, 
                                             variants: newVariants, 

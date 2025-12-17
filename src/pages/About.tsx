@@ -1,9 +1,12 @@
 import React from 'react';
+import SEO from '../components/SEO';
+import { routeSEO } from '../config/seo';
 import { Heart, Award, Users, Gem } from 'lucide-react';
 
 const About: React.FC = () => {
   return (
     <div className="min-h-screen bg-white pt-24 pb-12">
+      <SEO title={routeSEO.about.title} description={routeSEO.about.description} url={routeSEO.about.path} />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">

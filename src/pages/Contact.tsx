@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import SEO from '../components/SEO';
+import { routeSEO } from '../config/seo';
 import { Mail, Phone, MapPin, Instagram, Send, Clock } from 'lucide-react';
 //import { FaEnvelope } from 'react-icons/fa';
 
@@ -20,20 +22,25 @@ const Contact: React.FC = () => {
     setError('');
     setSent(false);
     try {
-      const res = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      if (res.ok) {
-        setSent(true);
-        setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Error enviando el mensaje');
-      }
+      const phone = '51979004991'; // formato internacional sin '+'
+      const body = [
+        'Hola, quiero más información:',
+        `Nombre: ${formData.name}`,
+        `Email: ${formData.email}`,
+        formData.phone ? `Teléfono: ${formData.phone}` : null,
+        `Asunto: ${formData.subject}`,
+        '',
+        formData.message
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const url = `https://wa.me/${phone}?text=${encodeURIComponent(body)}`;
+      window.open(url, '_blank');
+      setSent(true);
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
     } catch (err) {
-      setError('Error enviando el mensaje');
+      setError('No se pudo abrir WhatsApp. Inténtalo de nuevo.');
     } finally {
       setSending(false);
     }
@@ -48,6 +55,7 @@ const Contact: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12 relative">
+      <SEO title={routeSEO.contact.title} description={routeSEO.contact.description} url={routeSEO.contact.path} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
@@ -246,7 +254,7 @@ const Contact: React.FC = () => {
                   />
                 </div>
 
-                {sent && <div className="text-green-600 font-medium">¡Mensaje enviado correctamente!</div>}
+                {sent && <div className="text-green-600 font-medium">Se abrió WhatsApp con tu mensaje listo para enviar.</div>}
                 {error && <div className="text-red-600 font-medium">{error}</div>}
 
                 <button
@@ -255,7 +263,7 @@ const Contact: React.FC = () => {
                   disabled={sending}
                 >
                   <Send className="h-5 w-5 mr-2" />
-                  {sending ? 'Enviando...' : 'Enviar mensaje'}
+                  {sending ? 'Abriendo WhatsApp...' : 'Enviar por WhatsApp'}
                 </button>
               </form>
             </div>

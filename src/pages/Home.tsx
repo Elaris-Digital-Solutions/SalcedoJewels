@@ -1,4 +1,6 @@
 import React from 'react';
+import SEO from '../components/SEO';
+import { routeSEO } from '../config/seo';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Shield, Award } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
@@ -10,6 +12,7 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen">
+      <SEO title={routeSEO.home.title} description={routeSEO.home.description} url={routeSEO.home.path} />
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-cream-50">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center opacity-5"></div>

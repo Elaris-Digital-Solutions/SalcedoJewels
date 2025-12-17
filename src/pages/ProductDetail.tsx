@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SEO from '../components/SEO';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, Share2, ShoppingBag, Truck, Shield, RotateCcw, CreditCard, CheckCircle, XCircle, Plus, Minus } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
@@ -83,6 +84,12 @@ const ProductDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white pt-24 pb-12">
+      <SEO
+        title={`${product.name} | ${product.category}`}
+        description={product.description}
+        image={product.mainImage}
+        url={`/product/${product.id}`}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <div className="mb-8">

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SEO from '../components/SEO';
 import { Search, Package, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
@@ -60,6 +61,7 @@ const OrderTracking: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12">
+      <SEO title="Seguimiento de Pedido" description="Consulta el estado de tu pedido" url="/tracking" noindex />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
           <h1 className="font-playfair text-4xl font-bold text-gray-900 mb-4">

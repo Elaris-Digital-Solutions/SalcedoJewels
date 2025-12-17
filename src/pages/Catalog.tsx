@@ -1,5 +1,7 @@
 
 import React from 'react';
+import SEO from '../components/SEO';
+import { routeSEO } from '../config/seo';
 import { Search } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useScrollPosition } from '../hooks/useScrollPosition';
@@ -16,6 +18,7 @@ const Catalog: React.FC = () => {
 
   return (
     <div ref={catalogRef} className="min-h-screen bg-cream-25 pt-24 pb-12">
+      <SEO title={routeSEO.catalog.title} description={routeSEO.catalog.description} url={routeSEO.catalog.path} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">

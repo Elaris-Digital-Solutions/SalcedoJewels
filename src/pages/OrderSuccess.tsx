@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import SEO from '../components/SEO';
 import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle, Download, MessageCircle, Mail, ArrowRight } from 'lucide-react';
 
@@ -91,8 +92,7 @@ ${orderSummary.customer.firstName} ${orderSummary.customer.lastName}`;
   };
 
   return (
-    <div className="min-h-screen bg-cream-25 pt-24 pb-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-cream-25 pt-24 pb-12">      <SEO title="Pedido Confirmado" description="Resumen de compra" url="/order-success" noindex />      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Success Header */}
         <div className="text-center mb-12">
           <div className="bg-green-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">

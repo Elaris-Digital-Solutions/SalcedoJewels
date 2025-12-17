@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SEO from '../components/SEO';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, User, MapPin, Phone, Mail, Calendar, Lock, AlertCircle } from 'lucide-react';
@@ -261,6 +262,7 @@ const Checkout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-cream-25 pt-24 pb-12">
+      <SEO title="Checkout" description="Proceso de compra" url="/checkout" noindex />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
