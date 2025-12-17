@@ -85,6 +85,13 @@ type SelectedImage = {
   filename: string;
 };
 
+type EditingImage = {
+  type: 'url' | 'file';
+  url: string;
+  file?: File;
+  id: string;
+};
+
 const Admin: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct, updateProductOrder } = useProducts();
   const { isAuthenticated, logout } = useAuth();
@@ -139,6 +146,7 @@ const Admin: React.FC = () => {
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingImages, setEditingImages] = useState<EditingImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [mainUploadIndex, setMainUploadIndex] = useState(0);
@@ -570,8 +578,67 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleSaveEdit = () => {
-    if (editingProduct) {
+  const handleSelectEditImages = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const newImages: EditingImage[] = Array.from(files)
+      .filter(f => f.type.startsWith('image/'))
+      .map((file) => ({
+        type: 'file',
+        file,
+        url: URL.createObjectURL(file),
+        id: `new-${Date.now()}-${Math.random()}`
+      }));
+    setEditingImages(prev => [...prev, ...newImages]);
+  };
+
+  const removeEditImage = (index: number) => {
+    setEditingImages(prev => {
+      const target = prev[index];
+      if (target.type === 'file') URL.revokeObjectURL(target.url);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const setMainEditImage = (index: number) => {
+    setEditingImages(prev => {
+      const newArr = [...prev];
+      const [item] = newArr.splice(index, 1);
+      newArr.unshift(item);
+      return newArr;
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingProduct) return;
+    
+    setIsUploading(true);
+    try {
+      // Upload new images
+      const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+      const CLOUDINARY_FOLDER = import.meta.env.VITE_CLOUDINARY_FOLDER;
+
+      const finalUrls: string[] = [];
+
+      for (const img of editingImages) {
+        if (img.type === 'url') {
+          finalUrls.push(img.url);
+        } else if (img.type === 'file' && img.file) {
+          const form = new FormData();
+          form.append('file', img.file);
+          form.append('upload_preset', UPLOAD_PRESET);
+          if (CLOUDINARY_FOLDER) form.append('folder', CLOUDINARY_FOLDER);
+
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: form
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json?.error?.message || 'Error uploading image');
+          finalUrls.push(json.secure_url);
+        }
+      }
+
       const productToSave = {
         ...editingProduct,
         price: (typeof editingProduct.price === 'string' && !isNaN(parseFloat(editingProduct.price))) 
@@ -583,10 +650,19 @@ const Admin: React.FC = () => {
           price: (v.price !== undefined && v.price !== '' && !isNaN(parseFloat(v.price.toString()))) 
             ? parseFloat(v.price.toString()) 
             : undefined
-        }))
+        })),
+        mainImage: finalUrls[0] || editingProduct.mainImage,
+        additionalImages: finalUrls.slice(1)
       };
-      updateProduct(editingProduct.id, productToSave);
+
+      await updateProduct(editingProduct.id, productToSave);
       setEditingProduct(null);
+      setEditingImages([]);
+    } catch (error) {
+      console.error('Error saving edit:', error);
+      alert('Error al guardar cambios');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -1072,15 +1148,54 @@ const Admin: React.FC = () => {
                             />
                           </div>
 
-                          {/* Main Image */}
+                          {/* Image Management */}
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">Imagen Principal (URL)</label>
-                            <input
-                              type="text"
-                              value={editingProduct.mainImage}
-                              onChange={(e) => setEditingProduct({...editingProduct, mainImage: e.target.value})}
-                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                            />
+                            <label className="block text-xs font-medium text-gray-700 mb-2">Imágenes del Producto</label>
+                            
+                            {/* Add Images Button */}
+                            <div className="mb-3">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => handleSelectEditImages(e.target.files)}
+                                className="block w-full text-xs text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-cream-100 file:text-gold-800 hover:file:bg-cream-200"
+                              />
+                            </div>
+
+                            {/* Images Grid */}
+                            <div className="grid grid-cols-3 gap-2">
+                              {editingImages.map((img, index) => (
+                                <div key={img.id} className="border border-gray-200 rounded overflow-hidden bg-white relative group">
+                                  <div className="aspect-square bg-gray-50">
+                                    <img src={img.url} alt="Product" className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 rounded-bl">
+                                    <button
+                                      type="button"
+                                      onClick={() => removeEditImage(index)}
+                                      className="text-red-600 hover:text-red-800"
+                                      title="Eliminar"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                  <div className="p-1 bg-white border-t border-gray-100">
+                                    <button
+                                      type="button"
+                                      onClick={() => setMainEditImage(index)}
+                                      className={`w-full text-[10px] py-1 rounded border ${
+                                        index === 0 
+                                          ? 'bg-gold-50 text-gold-800 border-gold-200 font-medium' 
+                                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      {index === 0 ? 'Principal' : 'Hacer Principal'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
 
                           {/* Stock / Variants Logic */}
@@ -1325,7 +1440,15 @@ const Admin: React.FC = () => {
                           </div>
                           <div className="flex space-x-2 mt-4">
                             <button
-                              onClick={() => setEditingProduct(product)}
+                              onClick={() => {
+                                setEditingProduct(product);
+                                const imgs: EditingImage[] = [];
+                                if (product.mainImage) imgs.push({ type: 'url', url: product.mainImage, id: 'main' });
+                                if (product.additionalImages) {
+                                  product.additionalImages.forEach((u, i) => imgs.push({ type: 'url', url: u, id: `add-${i}` }));
+                                }
+                                setEditingImages(imgs);
+                              }}
                               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1"
                             >
                               <Edit className="h-4 w-4" />
