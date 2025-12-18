@@ -4,7 +4,7 @@ import { Upload, Plus, Minus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, C
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import { Product } from '../types/Product';
-import { Order } from '../types/Order';
+import { Order, InstallmentPayment } from '../types/Order';
 import { supabase } from '../supabaseClient';
 import AdminLogin from '../components/AdminLogin';
 import { productDescriptions } from '../data/productDescriptions';
@@ -159,6 +159,12 @@ const Admin: React.FC = () => {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [installmentsFilter, setInstallmentsFilter] = useState<string>('all');
+  const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [sortOption, setSortOption] = useState<'date_desc' | 'date_asc' | 'total_desc' | 'total_asc' | 'installments_desc' | 'installments_asc'>('date_desc');
+  const [installmentDrafts, setInstallmentDrafts] = useState<Record<string, { amount: string; note: string }>>({});
+  const [complianceFilter, setComplianceFilter] = useState<'all' | 'compliant' | 'noncompliant'>('all');
 
   // Product variants / stock state (must be declared before any early returns)
   const [hasVariants, setHasVariants] = useState(false);
@@ -375,6 +381,157 @@ const Admin: React.FC = () => {
       alert(`Error al actualizar el estado: ${error.message || 'Error desconocido'}`);
     }
   };
+
+  const generateId = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const getInstallmentStats = (order: Order) => {
+    const planned = order.installments || 1;
+    const payments = order.installment_payments || [];
+    const paidAmount = payments.filter(p => p.paid).reduce((acc, p) => acc + (p.amount || 0), 0);
+    const remaining = Math.max((order.total_amount || 0) - paidAmount, 0);
+    const exceeded = payments.length > planned;
+    return { planned, payments, paidAmount, remaining, exceeded };
+  };
+
+  const isOrderCompliant = (order: Order) => {
+    const payments = (order.installment_payments || []).filter(p => p.paid && p.paid_at);
+    if (!payments.length) return false;
+
+    const sorted = [...payments].sort((a, b) => new Date(a.paid_at as string).getTime() - new Date(b.paid_at as string).getTime());
+    const created = new Date(order.created_at).getTime();
+    const maxGap = 40 * 24 * 60 * 60 * 1000; // 40 días en ms
+
+    // Primera cuota dentro de 40 días de la compra
+    if (sorted[0].paid_at) {
+      const firstGap = new Date(sorted[0].paid_at).getTime() - created;
+      if (firstGap > maxGap) return false;
+    }
+
+    // Siguientes cuotas con brecha máxima de 40 días entre pagos
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = new Date(sorted[i - 1].paid_at as string).getTime();
+      const curr = new Date(sorted[i].paid_at as string).getTime();
+      if (curr - prev > maxGap) return false;
+    }
+
+    return true;
+  };
+
+  const saveInstallments = async (order: Order, payments: InstallmentPayment[]) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ installment_payments: payments })
+      .eq('id', order.id);
+
+    if (error) throw error;
+
+    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, installment_payments: payments } : o));
+    if (selectedOrder?.id === order.id) {
+      setSelectedOrder({ ...selectedOrder, installment_payments: payments });
+    }
+  };
+
+  const addInstallmentPayment = async (order: Order) => {
+    const draft = installmentDrafts[order.id] || { amount: '', note: '' };
+    const amount = parseFloat(draft.amount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Ingresa un monto válido para la cuota');
+      return;
+    }
+
+    const payments = order.installment_payments || [];
+    const newPayment: InstallmentPayment = {
+      id: generateId(),
+      amount,
+      paid: false,
+      note: draft.note?.trim() || undefined,
+    };
+
+    try {
+      await saveInstallments(order, [...payments, newPayment]);
+      setInstallmentDrafts(prev => ({ ...prev, [order.id]: { amount: '', note: '' } }));
+    } catch (error: any) {
+      console.error('Error agregando cuota:', error);
+      alert(`No se pudo agregar la cuota: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const toggleInstallmentPaid = async (order: Order, paymentId: string) => {
+    const payments = order.installment_payments || [];
+    const updated = payments.map(p => {
+      if (p.id !== paymentId) return p;
+      const paid = !p.paid;
+      return {
+        ...p,
+        paid,
+        paid_at: paid ? new Date().toISOString() : undefined,
+      };
+    });
+
+    try {
+      await saveInstallments(order, updated);
+    } catch (error: any) {
+      console.error('Error actualizando cuota:', error);
+      alert(`No se pudo actualizar la cuota: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const deleteInstallmentPayment = async (order: Order, paymentId: string) => {
+    if (!window.confirm('¿Eliminar esta cuota?')) return;
+
+    const payments = order.installment_payments || [];
+    const updated = payments.filter(p => p.id !== paymentId);
+
+    try {
+      await saveInstallments(order, updated);
+    } catch (error: any) {
+      console.error('Error eliminando cuota:', error);
+      alert(`No se pudo eliminar la cuota: ${error.message || 'Error desconocido'}`);
+    }
+  };
+
+  const normalizedSearch = customerSearch.trim().toLowerCase();
+  const filteredOrders = orders
+    .filter(order => statusFilter === 'all' || order.status === statusFilter)
+    .filter(order => {
+      const planned = order.installments || 1;
+      const paymentsCount = (order.installment_payments || []).length;
+      if (installmentsFilter === 'all') return true;
+      if (installmentsFilter === 'exceeded') return paymentsCount > planned;
+      return planned === Number(installmentsFilter);
+    })
+    .filter(order => !normalizedSearch ? true : (order.customer_name || '').toLowerCase().includes(normalizedSearch))
+    .filter(order => paymentFilter === 'all' ? true : (order.payment_method || '').toLowerCase() === paymentFilter.toLowerCase())
+    .filter(order => {
+      if (complianceFilter === 'all') return true;
+      const compliant = isOrderCompliant(order);
+      return complianceFilter === 'compliant' ? compliant : !compliant;
+    });
+
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    const aDate = new Date(a.created_at).getTime();
+    const bDate = new Date(b.created_at).getTime();
+    const aTotal = a.total_amount || 0;
+    const bTotal = b.total_amount || 0;
+    const aInstallments = a.installments || 1;
+    const bInstallments = b.installments || 1;
+
+    switch (sortOption) {
+      case 'date_asc':
+        return aDate - bDate;
+      case 'total_desc':
+        return bTotal - aTotal;
+      case 'total_asc':
+        return aTotal - bTotal;
+      case 'installments_desc':
+        return bInstallments - aInstallments;
+      case 'installments_asc':
+        return aInstallments - bInstallments;
+      case 'date_desc':
+      default:
+        return bDate - aDate;
+    }
+  });
 
   // Si no está autenticado, mostrar el formulario de login
   if (!isAuthenticated) {
@@ -1483,27 +1640,100 @@ const Admin: React.FC = () => {
         {activeTab === 'orders' && (
           <div className="space-y-6">
             {/* Filters */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-beige-200">
-              <div className="flex items-center space-x-4">
-                <span className="text-sm font-medium text-gray-700">Filtrar por estado:</span>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
-                >
-                  <option value="all">Todos</option>
-                  <option value="Recibido">Recibido</option>
-                  <option value="Confirmado">Confirmado</option>
-                  <option value="En proceso">En proceso</option>
-                  <option value="Entregado">Entregado</option>
-                </select>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-beige-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="flex flex-col space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Buscar por clienta</label>
+                  <input
+                    type="text"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    placeholder="Ej: María Pérez"
+                    className="border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Estado</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="Recibido">Recibido</option>
+                    <option value="Confirmado">Confirmado</option>
+                    <option value="En proceso">En proceso</option>
+                    <option value="Entregado">Entregado</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Cuotas</label>
+                  <select
+                    value={installmentsFilter}
+                    onChange={(e) => setInstallmentsFilter(e.target.value)}
+                    className="border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                  >
+                    <option value="all">Todas</option>
+                    <option value="1">1 cuota</option>
+                    <option value="2">2 cuotas</option>
+                    <option value="3">3 cuotas</option>
+                    <option value="exceeded">Cuotas excedidas</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Método de pago</label>
+                  <select
+                    value={paymentFilter}
+                    onChange={(e) => setPaymentFilter(e.target.value)}
+                    className="border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="transferencia">Transferencia</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="efectivo">Efectivo</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <label className="text-sm font-medium text-gray-700">Cumplimiento cuotas</label>
+                  <select
+                    value={complianceFilter}
+                    onChange={(e) => setComplianceFilter(e.target.value as 'all' | 'compliant' | 'noncompliant')}
+                    className="border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="compliant">Pagos a tiempo (≤40 días entre cada pago)</option>
+                    <option value="noncompliant">Pagos a destiempo (&gt;40 días)</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col space-y-1 lg:col-span-2">
+                  <label className="text-sm font-medium text-gray-700">Ordenar por</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0">
+                    <select
+                      value={sortOption}
+                      onChange={(e) => setSortOption(e.target.value as any)}
+                      className="border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500 flex-1"
+                    >
+                      <option value="date_desc">Fecha (recientes primero)</option>
+                      <option value="date_asc">Fecha (antiguos primero)</option>
+                      <option value="total_desc">Monto (mayor a menor)</option>
+                      <option value="total_asc">Monto (menor a mayor)</option>
+                      <option value="installments_desc">Cuotas (más a menos)</option>
+                      <option value="installments_asc">Cuotas (menos a más)</option>
+                    </select>
+                    <button
+                      onClick={fetchOrders}
+                      className="text-gold-600 hover:text-gold-700 text-sm font-medium whitespace-nowrap"
+                    >
+                      Actualizar lista
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={fetchOrders}
-                className="text-gold-600 hover:text-gold-700 text-sm font-medium"
-              >
-                Actualizar lista
-              </button>
             </div>
 
             {loadingOrders ? (
@@ -1544,9 +1774,9 @@ const Admin: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {orders
-                        .filter(order => statusFilter === 'all' || order.status === statusFilter)
-                        .map((order) => (
+                      {sortedOrders.map((order) => {
+                        const { planned, payments, paidAmount, remaining, exceeded } = getInstallmentStats(order);
+                        return (
                         <React.Fragment key={order.id}>
                           <tr className={selectedOrder?.id === order.id ? 'bg-cream-50' : 'hover:bg-gray-50'}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -1653,12 +1883,105 @@ const Admin: React.FC = () => {
                                       ))}
                                     </div>
                                   </div>
+                                  <div className="md:col-span-2 bg-white rounded border border-beige-200 p-4">
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                                      <div className="space-y-1">
+                                        <h4 className="font-bold text-gray-900">Plan de Cuotas</h4>
+                                        <p className="text-sm text-gray-600">Plan: {planned} | Registradas: {payments.length}</p>
+                                        <p className="text-sm text-gray-600">Pagado: $ {paidAmount.toLocaleString()} | Restante: $ {remaining.toLocaleString()}</p>
+                                      </div>
+                                      {exceeded && (
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Cuotas excedidas</span>
+                                      )}
+                                    </div>
+
+                                    <div className="overflow-x-auto mb-4">
+                                      <table className="min-w-full text-sm">
+                                        <thead>
+                                          <tr className="text-left text-gray-500">
+                                            <th className="py-2 pr-4">Estado</th>
+                                            <th className="py-2 pr-4">Monto</th>
+                                            <th className="py-2 pr-4">Fecha pago</th>
+                                            <th className="py-2 pr-4">Nota</th>
+                                            <th className="py-2 pr-4">Acciones</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-beige-200">
+                                          {payments.length === 0 ? (
+                                            <tr>
+                                              <td colSpan={5} className="py-3 text-gray-500">Aún no hay cuotas registradas.</td>
+                                            </tr>
+                                          ) : payments.map((p) => (
+                                            <tr key={p.id}>
+                                              <td className="py-2 pr-4">
+                                                <label className="inline-flex items-center space-x-2 cursor-pointer">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={p.paid}
+                                                    onChange={() => toggleInstallmentPaid(order, p.id)}
+                                                    className="rounded text-gold-600 focus:ring-gold-500"
+                                                  />
+                                                  <span className={p.paid ? 'text-green-600 font-semibold' : 'text-gray-700'}>
+                                                    {p.paid ? 'Pagada' : 'Pendiente'}
+                                                  </span>
+                                                </label>
+                                              </td>
+                                              <td className="py-2 pr-4 text-gray-900 font-semibold">$ {p.amount.toLocaleString()}</td>
+                                              <td className="py-2 pr-4 text-gray-600 text-xs">{p.paid_at ? new Date(p.paid_at).toLocaleDateString('es-PE') : '-'}</td>
+                                              <td className="py-2 pr-4 text-gray-600 text-xs">{p.note || '-'}</td>
+                                              <td className="py-2 pr-4 text-right">
+                                                <button
+                                                  onClick={() => deleteInstallmentPayment(order, p.id)}
+                                                  className="text-red-500 hover:text-red-700 p-1"
+                                                  title="Eliminar cuota"
+                                                >
+                                                  <Trash2 className="h-4 w-4" />
+                                                </button>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-3 space-y-3 sm:space-y-0">
+                                      <div className="flex-1 space-y-1">
+                                        <label className="text-sm font-medium text-gray-700">Agregar cuota</label>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          value={(installmentDrafts[order.id]?.amount) || ''}
+                                          onChange={(e) => setInstallmentDrafts(prev => ({ ...prev, [order.id]: { ...(prev[order.id] || { note: '' }), amount: e.target.value } }))}
+                                          placeholder="Monto"
+                                          className="w-full border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                                        />
+                                      </div>
+                                      <div className="flex-1 space-y-1">
+                                        <label className="text-sm font-medium text-gray-700">Nota (opcional)</label>
+                                        <input
+                                          type="text"
+                                          value={(installmentDrafts[order.id]?.note) || ''}
+                                          onChange={(e) => setInstallmentDrafts(prev => ({ ...prev, [order.id]: { ...(prev[order.id] || { amount: '' }), note: e.target.value } }))}
+                                          placeholder="Ej: Reprogramada a 15 días"
+                                          className="w-full border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                                        />
+                                      </div>
+                                      <button
+                                        onClick={() => addInstallmentPayment(order)}
+                                        className="sm:w-auto w-full inline-flex items-center justify-center px-4 py-2 bg-gold-500 hover:bg-gold-600 text-white rounded-md text-sm font-medium transition-colors duration-200"
+                                      >
+                                        Agregar cuota
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               </td>
                             </tr>
                           )}
                         </React.Fragment>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -6,6 +6,14 @@ export interface OrderItem {
   selectedSize?: string;
 }
 
+export interface InstallmentPayment {
+  id: string;
+  amount: number;
+  paid: boolean;
+  paid_at?: string;
+  note?: string;
+}
+
 export interface Order {
   id: string;
   created_at: string;
@@ -18,5 +26,6 @@ export interface Order {
   total_amount: number;
   payment_method: string;
   installments?: number;
+  installment_payments?: InstallmentPayment[];
   status: 'Recibido' | 'Confirmado' | 'En proceso' | 'Entregado';
 }
