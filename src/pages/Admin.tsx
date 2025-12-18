@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import SEO from '../components/SEO';
-import { Upload, Plus, Minus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, GripVertical, LayoutGrid } from 'lucide-react';
+import { Upload, Plus, Minus, Eye, Trash2, Edit, Save, X, LogOut, ShoppingBag, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, GripVertical, LayoutGrid, BarChart3 } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import { Product } from '../types/Product';
@@ -119,7 +119,7 @@ type EditingImage = {
 const Admin: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct, updateProductOrder } = useProducts();
   const { isAuthenticated, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'upload' | 'manage' | 'orders' | 'organize'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'manage' | 'orders' | 'organize' | 'stats'>('upload');
   
   // Organize State
   const [orderedProducts, setOrderedProducts] = useState<Product[]>([]);
@@ -244,7 +244,7 @@ const Admin: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'orders') {
+    if (activeTab === 'orders' || activeTab === 'stats') {
       fetchOrders();
     }
   }, [activeTab]);
@@ -573,6 +573,100 @@ const Admin: React.FC = () => {
         return bDate - aDate;
     }
   });
+
+  // Stats data (after orders state is defined)
+  const totalRevenue = useMemo(() => orders.reduce((acc, o) => acc + (o.total_amount || 0), 0), [orders]);
+  const totalOrders = orders.length;
+  const totalItemsSold = useMemo(() => orders.reduce((acc, o) => acc + (o.items || []).reduce((a, i) => a + (i.quantity || 0), 0), 0), [orders]);
+
+  const salesByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    orders.forEach(o => {
+      (o.items || []).forEach(it => {
+        const cat = it.product?.category || 'General';
+        map.set(cat, (map.get(cat) || 0) + (it.quantity || 0));
+      });
+    });
+    return Array.from(map.entries()).map(([label, value]) => ({ label, value }));
+  }, [orders]);
+
+  const groupByPeriod = (period: 'day' | 'week' | 'month') => {
+    const map = new Map<string, number>();
+    orders.forEach(o => {
+      const d = new Date(o.created_at);
+      if (Number.isNaN(d.getTime())) return;
+      let key = '';
+      if (period === 'day') {
+        key = d.toISOString().slice(0, 10);
+      } else if (period === 'month') {
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      } else {
+        // ISO week label
+        const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = tmp.getUTCDay() || 7;
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+        key = `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+      }
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    const arr = Array.from(map.entries()).map(([label, value]) => ({ label, value }));
+    return arr.sort((a, b) => a.label.localeCompare(b.label)).slice(-12); // keep last 12 periods
+  };
+
+  const ordersByDay = useMemo(() => groupByPeriod('day'), [orders]);
+  const ordersByWeek = useMemo(() => groupByPeriod('week'), [orders]);
+  const ordersByMonth = useMemo(() => groupByPeriod('month'), [orders]);
+
+  const fastestCategory = useMemo<{ cat: string; rate: number } | null>(() => {
+    if (!orders.length) return null;
+    const now = Date.now();
+    const stats = new Map<string, { qty: number; first: number }>();
+    orders.forEach(o => {
+      const created = new Date(o.created_at).getTime();
+      (o.items || []).forEach(it => {
+        const cat = it.product?.category || 'General';
+        if (!stats.has(cat)) stats.set(cat, { qty: 0, first: created });
+        const curr = stats.get(cat)!;
+        curr.qty += it.quantity || 0;
+        curr.first = Math.min(curr.first, created);
+        stats.set(cat, curr);
+      });
+    });
+    let best: { cat: string; rate: number } | null = null;
+    stats.forEach((v, cat) => {
+      const days = Math.max(1, (now - v.first) / 86400000);
+      const rate = v.qty / days;
+      if (!best || rate > best.rate) best = { cat, rate };
+    });
+    return best;
+  }, [orders]);
+
+  const fastestCategoryLabel = useMemo(() => {
+    if (!fastestCategory) return 'Sin datos';
+    const { cat, rate } = fastestCategory;
+    return `${cat} (${rate.toFixed(2)} uds/día)`;
+  }, [fastestCategory]);
+
+  const maxValue = (arr: { value: number }[]) => arr.reduce((m, it) => Math.max(m, it.value), 0);
+
+  const stockByCategory = useMemo(() => {
+    const map = new Map<string, { value: number; count: number }>();
+    products.forEach(p => {
+      const cat = p.category || 'General';
+      const entry = map.get(cat) || { value: 0, count: 0 };
+      const stock = p.stock || 0;
+      entry.value += stock * (p.price || 0);
+      entry.count += 1;
+      map.set(cat, entry);
+    });
+    const entries = Array.from(map.entries());
+    return {
+      valueBars: entries.map(([label, data]) => ({ label, value: data.value })),
+      countBars: entries.map(([label, data]) => ({ label, value: data.count })),
+    };
+  }, [products]);
 
   // Si no está autenticado, mostrar el formulario de login
   if (!isAuthenticated) {
@@ -943,6 +1037,17 @@ const Admin: React.FC = () => {
               >
                 <LayoutGrid className="h-4 w-4 inline mr-2" />
                 Organizar Productos
+              </button>
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  activeTab === 'stats'
+                    ? 'border-gold-500 text-gold-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <BarChart3 className="h-4 w-4 inline mr-2" />
+                Estadísticas
               </button>
             </nav>
           </div>
@@ -2138,6 +2243,153 @@ const Admin: React.FC = () => {
                   </div>
                 </SortableContext>
               </DndContext>
+            </div>
+          </div>
+        )}
+
+        {/* Stats Tab */}
+        {activeTab === 'stats' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[ 
+                  { label: 'Pedidos', value: totalOrders.toLocaleString() },
+                  { label: 'Ingresos totales', value: `$ ${totalRevenue.toLocaleString()}` },
+                  { label: 'Piezas vendidas', value: totalItemsSold.toLocaleString() },
+                  { label: 'Categoría más rápida', value: fastestCategoryLabel }
+                ].map(card => (
+                  <div key={card.label} className="bg-cream-50 border border-beige-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-500">{card.label}</p>
+                    <p className="text-xl font-semibold text-gray-900 mt-1">{card.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-md font-semibold text-gray-900">Piezas vendidas por categoría</h4>
+                  <span className="text-xs text-gray-500">Barras</span>
+                </div>
+                <div className="space-y-3">
+                  {salesByCategory.length === 0 ? (
+                    <p className="text-sm text-gray-500">Sin datos aún.</p>
+                  ) : (
+                    salesByCategory.map(cat => {
+                      const max = Math.max(1, maxValue(salesByCategory));
+                      const pct = Math.max(4, (cat.value / max) * 100);
+                      return (
+                        <div key={cat.label} className="flex items-center space-x-3">
+                          <span className="w-28 text-sm text-gray-700 truncate">{cat.label}</span>
+                          <div className="flex-1 h-3 bg-cream-100 rounded-full overflow-hidden">
+                            <div className="h-3 bg-gold-500" style={{ width: `${pct}%` }}></div>
+                          </div>
+                          <span className="w-12 text-sm font-medium text-gray-800 text-right">{cat.value}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-md font-semibold text-gray-900">Ventas por día / semana / mes</h4>
+                  <span className="text-xs text-gray-500">Conteo de pedidos</span>
+                </div>
+                <div className="space-y-6">
+                  {[{ title: 'Por día', data: ordersByDay }, { title: 'Por semana', data: ordersByWeek }, { title: 'Por mes', data: ordersByMonth }].map(block => {
+                    const max = Math.max(1, maxValue(block.data));
+                    return (
+                      <div key={block.title}>
+                        <p className="text-sm font-medium text-gray-800 mb-2">{block.title}</p>
+                        {block.data.length === 0 ? (
+                          <p className="text-xs text-gray-500">Sin datos aún.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {block.data.map(row => {
+                              const pct = Math.max(4, (row.value / max) * 100);
+                              return (
+                                <div key={row.label} className="flex items-center space-x-3">
+                                  <span className="w-28 text-[11px] text-gray-700 truncate">{row.label}</span>
+                                  <div className="flex-1 h-2.5 bg-cream-100 rounded-full overflow-hidden">
+                                    <div className="h-2.5 bg-gold-500" style={{ width: `${pct}%` }}></div>
+                                  </div>
+                                  <span className="w-8 text-[11px] font-medium text-gray-800 text-right">{row.value}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-md font-semibold text-gray-900">Stock y catálogo por categoría</h4>
+                <span className="text-xs text-gray-500">Valor y cantidad</span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-2">Valor de stock (precio x unidades)</p>
+                  {stockByCategory.valueBars.length === 0 ? (
+                    <p className="text-xs text-gray-500">Sin datos.</p>
+                  ) : (
+                    stockByCategory.valueBars.map(row => {
+                      const max = Math.max(1, maxValue(stockByCategory.valueBars));
+                      const pct = Math.max(4, (row.value / max) * 100);
+                      return (
+                        <div key={row.label} className="flex items-center space-x-3 mb-2">
+                          <span className="w-32 text-xs text-gray-700 truncate">{row.label}</span>
+                          <div className="flex-1 h-2.5 bg-cream-100 rounded-full overflow-hidden">
+                            <div className="h-2.5 bg-gold-500" style={{ width: `${pct}%` }}></div>
+                          </div>
+                          <span className="w-20 text-xs font-semibold text-gray-800 text-right">$ {row.value.toLocaleString()}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-2">Cantidad de productos por categoría</p>
+                  {stockByCategory.countBars.length === 0 ? (
+                    <p className="text-xs text-gray-500">Sin datos.</p>
+                  ) : (
+                    stockByCategory.countBars.map(row => {
+                      const max = Math.max(1, maxValue(stockByCategory.countBars));
+                      const pct = Math.max(4, (row.value / max) * 100);
+                      return (
+                        <div key={row.label} className="flex items-center space-x-3 mb-2">
+                          <span className="w-32 text-xs text-gray-700 truncate">{row.label}</span>
+                          <div className="flex-1 h-2.5 bg-cream-100 rounded-full overflow-hidden">
+                            <div className="h-2.5 bg-gold-400" style={{ width: `${pct}%` }}></div>
+                          </div>
+                          <span className="w-10 text-xs font-semibold text-gray-800 text-right">{row.value}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-md font-semibold text-gray-900">Notas</h4>
+                <span className="text-xs text-gray-500">Basado en pedidos registrados</span>
+              </div>
+              <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
+                <li>Las métricas usan los pedidos cargados en el panel.</li>
+                <li>“Categoría más rápida” se calcula como piezas vendidas / días desde la primera venta de esa categoría.</li>
+                <li>Gráficos de periodo muestran hasta los últimos 12 puntos disponibles.</li>
+              </ul>
             </div>
           </div>
         )}
