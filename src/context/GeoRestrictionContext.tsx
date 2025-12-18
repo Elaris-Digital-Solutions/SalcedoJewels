@@ -29,14 +29,25 @@ const GeoRestrictionContext = createContext<GeoRestrictionState | undefined>(und
 
 const normalize = (value?: string) => value?.toLowerCase().trim() || '';
 
-// Restricción desactivada: siempre permitir acceso.
-const isPimentelRestricted = () => false;
+const isPimentelRestricted = (city?: string, region?: string, country?: string) => {
+  const cityName = normalize(city);
+  const regionName = normalize(region);
+  const countryName = normalize(country);
+
+  // Bloquear todo Lambayeque (Perú); mantener Pimentel como fallback por si no llega región.
+  if (!(countryName === 'peru' || countryName === 'pe')) return false;
+
+  if (regionName.includes('lambayeque')) return true;
+  if (cityName.includes('pimentel')) return true;
+
+  return false;
+};
 
 const evaluateRestriction = (location: LocationInfo) => {
   const restricted = isPimentelRestricted(location.city, location.region, location.country);
   return {
     restricted,
-    reason: undefined
+    reason: restricted ? 'Catálogo limitado en Lambayeque, Perú.' : undefined
   };
 };
 
@@ -87,13 +98,36 @@ export const GeoRestrictionProvider: React.FC<{ children: ReactNode }> = ({ chil
     setState(prev => ({ ...prev, isChecking: true, error: undefined }));
 
     try {
-      // Restricción desactivada: no se consulta geolocalización, se permite acceso completo.
+      if (!forceRefresh) {
+        const cached = readCache();
+        if (cached) {
+          setState({
+            isChecking: false,
+            isRestricted: cached.isRestricted,
+            location: cached.location,
+            reason: cached.reason,
+            error: undefined
+          });
+          return;
+        }
+      }
+
+      const location = await fetchLocation();
+      const { restricted, reason } = evaluateRestriction(location);
+
       setState({
         isChecking: false,
-        isRestricted: false,
-        location: {},
-        reason: undefined,
+        isRestricted: restricted,
+        location,
+        reason,
         error: undefined
+      });
+
+      writeCache({
+        timestamp: Date.now(),
+        location,
+        isRestricted: restricted,
+        reason
       });
     } catch (error) {
       console.error('Error verificando la geolocalización', error);
