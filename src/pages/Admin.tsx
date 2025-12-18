@@ -652,21 +652,94 @@ const Admin: React.FC = () => {
   const maxValue = (arr: { value: number }[]) => arr.reduce((m, it) => Math.max(m, it.value), 0);
 
   const stockByCategory = useMemo(() => {
-    const map = new Map<string, { value: number; count: number }>();
+    const map = new Map<string, { value: number; count: number; piecesInStock: number; valueInStock: number }>();
     products.forEach(p => {
       const cat = p.category || 'General';
-      const entry = map.get(cat) || { value: 0, count: 0 };
+      const entry = map.get(cat) || { value: 0, count: 0, piecesInStock: 0, valueInStock: 0 };
       const stock = p.stock || 0;
       entry.value += stock * (p.price || 0);
       entry.count += 1;
+      if (stock > 0) {
+        entry.piecesInStock += stock;
+        entry.valueInStock += stock * (p.price || 0);
+      }
       map.set(cat, entry);
     });
     const entries = Array.from(map.entries());
+    const valueBars = entries.map(([label, data]) => ({ label, value: data.valueInStock }));
+    const countBars = entries.map(([label, data]) => ({ label, value: data.piecesInStock }));
+    const totalInStockPieces = entries.reduce((acc, [, data]) => acc + data.piecesInStock, 0);
+    const totalInStockValue = entries.reduce((acc, [, data]) => acc + data.valueInStock, 0);
     return {
-      valueBars: entries.map(([label, data]) => ({ label, value: data.value })),
-      countBars: entries.map(([label, data]) => ({ label, value: data.count })),
+      valueBars,
+      countBars,
+      totalInStockPieces,
+      totalInStockValue,
     };
   }, [products]);
+
+  const lifetimeByCategory = useMemo(() => {
+    const map = new Map<string, { soldPieces: number; soldValue: number; currentPieces: number; currentValue: number }>();
+
+    // Current stock
+    products.forEach(p => {
+      const cat = p.category || 'General';
+      const entry = map.get(cat) || { soldPieces: 0, soldValue: 0, currentPieces: 0, currentValue: 0 };
+      const stock = p.stock || 0;
+      entry.currentPieces += stock;
+      entry.currentValue += stock * (p.price || 0);
+      map.set(cat, entry);
+    });
+
+    // Sold pieces from orders (solo estados recibidos/confirmados/en proceso/entregado)
+    const recognizedStatuses = new Set(['Recibido', 'Confirmado', 'En proceso', 'Entregado']);
+    orders.forEach(o => {
+      if (!recognizedStatuses.has(o.status)) return;
+      (o.items || []).forEach(it => {
+        const cat = it.product?.category || 'General';
+        const entry = map.get(cat) || { soldPieces: 0, soldValue: 0, currentPieces: 0, currentValue: 0 };
+        const qty = it.quantity || 0;
+        const price = it.product?.price || 0;
+        entry.soldPieces += qty;
+        entry.soldValue += qty * price;
+        map.set(cat, entry);
+      });
+    });
+
+    const entries = Array.from(map.entries());
+    const valueBars = entries.map(([label, data]) => ({ label, value: data.soldValue + data.currentValue }));
+    const piecesBars = entries.map(([label, data]) => ({ label, value: data.soldPieces + data.currentPieces }));
+    const totalPieces = entries.reduce((acc, [, d]) => acc + d.soldPieces + d.currentPieces, 0);
+    const totalValue = entries.reduce((acc, [, d]) => acc + d.soldValue + d.currentValue, 0);
+
+    return { valueBars, piecesBars, totalPieces, totalValue };
+  }, [products, orders]);
+
+  const soldByCategory = useMemo(() => {
+    const map = new Map<string, { soldPieces: number; soldValue: number }>();
+    const recognizedStatuses = new Set(['Recibido', 'Confirmado', 'En proceso', 'Entregado']);
+
+    orders.forEach(o => {
+      if (!recognizedStatuses.has(o.status)) return;
+      (o.items || []).forEach(it => {
+        const cat = it.product?.category || 'General';
+        const entry = map.get(cat) || { soldPieces: 0, soldValue: 0 };
+        const qty = it.quantity || 0;
+        const price = it.product?.price || 0;
+        entry.soldPieces += qty;
+        entry.soldValue += qty * price;
+        map.set(cat, entry);
+      });
+    });
+
+    const entries = Array.from(map.entries());
+    const valueBars = entries.map(([label, data]) => ({ label, value: data.soldValue }));
+    const piecesBars = entries.map(([label, data]) => ({ label, value: data.soldPieces }));
+    const totalPieces = entries.reduce((acc, [, d]) => acc + d.soldPieces, 0);
+    const totalValue = entries.reduce((acc, [, d]) => acc + d.soldValue, 0);
+
+    return { valueBars, piecesBars, totalPieces, totalValue };
+  }, [orders]);
 
   // Si no está autenticado, mostrar el formulario de login
   if (!isAuthenticated) {
@@ -2358,7 +2431,7 @@ const Admin: React.FC = () => {
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium text-gray-800 mb-2">Cantidad de productos por categoría</p>
+                  <p className="text-sm font-medium text-gray-800 mb-2">Unidades en stock por categoría</p>
                   {stockByCategory.countBars.length === 0 ? (
                     <p className="text-xs text-gray-500">Sin datos.</p>
                   ) : (
@@ -2369,13 +2442,143 @@ const Admin: React.FC = () => {
                         <div key={row.label} className="flex items-center space-x-3 mb-2">
                           <span className="w-32 text-xs text-gray-700 truncate">{row.label}</span>
                           <div className="flex-1 h-2.5 bg-cream-100 rounded-full overflow-hidden">
-                            <div className="h-2.5 bg-gold-400" style={{ width: `${pct}%` }}></div>
+                            <div className="h-2.5 bg-gold-500" style={{ width: `${pct}%` }}></div>
                           </div>
                           <span className="w-10 text-xs font-semibold text-gray-800 text-right">{row.value}</span>
                         </div>
                       );
                     })
                   )}
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-cream-50 border border-beige-200 rounded-lg p-4">
+                <div>
+                  <p className="text-xs text-gray-600">Total piezas en stock</p>
+                  <p className="text-lg font-semibold text-gray-900">{stockByCategory.totalInStockPieces.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">Valor total en stock</p>
+                  <p className="text-lg font-semibold text-gray-900">$ {stockByCategory.totalInStockValue.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-md font-semibold text-gray-900">Histórico: stock + vendido por categoría</h4>
+                <span className="text-xs text-gray-500">Incluye piezas vendidas</span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-2">Valor total (vendido + stock)</p>
+                  {lifetimeByCategory.valueBars.length === 0 ? (
+                    <p className="text-xs text-gray-500">Sin datos.</p>
+                  ) : (
+                    lifetimeByCategory.valueBars.map(row => {
+                      const max = Math.max(1, maxValue(lifetimeByCategory.valueBars));
+                      const pct = Math.max(4, (row.value / max) * 100);
+                      return (
+                        <div key={row.label} className="flex items-center space-x-3 mb-2">
+                          <span className="w-32 text-xs text-gray-700 truncate">{row.label}</span>
+                          <div className="flex-1 h-2.5 bg-cream-100 rounded-full overflow-hidden">
+                            <div className="h-2.5 bg-gold-500" style={{ width: `${pct}%` }}></div>
+                          </div>
+                          <span className="w-20 text-xs font-semibold text-gray-800 text-right">$ {row.value.toLocaleString()}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-2">Total de piezas (vendidas + stock)</p>
+                  {lifetimeByCategory.piecesBars.length === 0 ? (
+                    <p className="text-xs text-gray-500">Sin datos.</p>
+                  ) : (
+                    lifetimeByCategory.piecesBars.map(row => {
+                      const max = Math.max(1, maxValue(lifetimeByCategory.piecesBars));
+                      const pct = Math.max(4, (row.value / max) * 100);
+                      return (
+                        <div key={row.label} className="flex items-center space-x-3 mb-2">
+                          <span className="w-32 text-xs text-gray-700 truncate">{row.label}</span>
+                          <div className="flex-1 h-2.5 bg-cream-100 rounded-full overflow-hidden">
+                            <div className="h-2.5 bg-gold-500" style={{ width: `${pct}%` }}></div>
+                          </div>
+                          <span className="w-10 text-xs font-semibold text-gray-800 text-right">{row.value}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-cream-50 border border-beige-200 rounded-lg p-4">
+                <div>
+                  <p className="text-xs text-gray-600">Total piezas (vendidas + stock)</p>
+                  <p className="text-lg font-semibold text-gray-900">{lifetimeByCategory.totalPieces.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">Valor total (vendido + stock)</p>
+                  <p className="text-lg font-semibold text-gray-900">$ {lifetimeByCategory.totalValue.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-md font-semibold text-gray-900">Solo piezas vendidas por categoría</h4>
+                <span className="text-xs text-gray-500">Excluye stock</span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-2">Valor vendido</p>
+                  {soldByCategory.valueBars.length === 0 ? (
+                    <p className="text-xs text-gray-500">Sin datos.</p>
+                  ) : (
+                    soldByCategory.valueBars.map(row => {
+                      const max = Math.max(1, maxValue(soldByCategory.valueBars));
+                      const pct = Math.max(4, (row.value / max) * 100);
+                      return (
+                        <div key={row.label} className="flex items-center space-x-3 mb-2">
+                          <span className="w-32 text-xs text-gray-700 truncate">{row.label}</span>
+                          <div className="flex-1 h-2.5 bg-cream-100 rounded-full overflow-hidden">
+                            <div className="h-2.5 bg-gold-500" style={{ width: `${pct}%` }}></div>
+                          </div>
+                          <span className="w-20 text-xs font-semibold text-gray-800 text-right">$ {row.value.toLocaleString()}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-800 mb-2">Piezas vendidas</p>
+                  {soldByCategory.piecesBars.length === 0 ? (
+                    <p className="text-xs text-gray-500">Sin datos.</p>
+                  ) : (
+                    soldByCategory.piecesBars.map(row => {
+                      const max = Math.max(1, maxValue(soldByCategory.piecesBars));
+                      const pct = Math.max(4, (row.value / max) * 100);
+                      return (
+                        <div key={row.label} className="flex items-center space-x-3 mb-2">
+                          <span className="w-32 text-xs text-gray-700 truncate">{row.label}</span>
+                          <div className="flex-1 h-2.5 bg-cream-100 rounded-full overflow-hidden">
+                            <div className="h-2.5 bg-gold-500" style={{ width: `${pct}%` }}></div>
+                          </div>
+                          <span className="w-10 text-xs font-semibold text-gray-800 text-right">{row.value}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-cream-50 border border-beige-200 rounded-lg p-4">
+                <div>
+                  <p className="text-xs text-gray-600">Total piezas vendidas</p>
+                  <p className="text-lg font-semibold text-gray-900">{soldByCategory.totalPieces.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">Valor total vendido</p>
+                  <p className="text-lg font-semibold text-gray-900">$ {soldByCategory.totalValue.toLocaleString()}</p>
                 </div>
               </div>
             </div>
