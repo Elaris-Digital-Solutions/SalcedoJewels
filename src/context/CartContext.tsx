@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '../types/Product';
+import { useGeoRestriction } from './GeoRestrictionContext';
 
 export interface CartItem {
   product: Product;
@@ -17,12 +18,16 @@ interface CartContextType {
   getTotalPrice: () => number;
   isInCart: (productId: string, size?: string) => boolean;
   getItemQuantity: (productId: string, size?: string) => number;
+  isCartBlocked: boolean;
+  restrictionReason?: string;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const { isRestricted, reason } = useGeoRestriction();
+  const isCartBlocked = isRestricted;
 
   // Cargar carrito desde localStorage al inicializar
   useEffect(() => {
@@ -38,10 +43,30 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Guardar carrito en localStorage cuando cambie
   useEffect(() => {
+    if (isCartBlocked) {
+      localStorage.removeItem('salcedo-cart');
+      return;
+    }
     localStorage.setItem('salcedo-cart', JSON.stringify(items));
-  }, [items]);
+  }, [items, isCartBlocked]);
+
+  // Limpiar carrito si el acceso está bloqueado
+  useEffect(() => {
+    if (isCartBlocked && items.length > 0) {
+      setItems([]);
+    }
+  }, [isCartBlocked, items.length]);
+
+  const isBlocked = () => {
+    if (isCartBlocked) {
+      console.warn('El carrito está deshabilitado para esta ubicación');
+      return true;
+    }
+    return false;
+  };
 
   const addToCart = (product: Product, quantity: number = 1, size?: string) => {
+    if (isBlocked()) return;
     setItems(prevItems => {
       const existingItem = prevItems.find(item => 
         item.product.id === product.id && item.selectedSize === size
@@ -60,12 +85,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const removeFromCart = (productId: string, size?: string) => {
+    if (isBlocked()) return;
     setItems(prevItems => prevItems.filter(item => 
       !(item.product.id === productId && item.selectedSize === size)
     ));
   };
 
   const updateQuantity = (productId: string, quantity: number, size?: string) => {
+    if (isBlocked()) return;
     if (quantity <= 0) {
       removeFromCart(productId, size);
       return;
@@ -81,14 +108,20 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const clearCart = () => {
+    if (isBlocked()) {
+      setItems([]);
+      return;
+    }
     setItems([]);
   };
 
   const getTotalItems = () => {
+    if (isCartBlocked) return 0;
     return items.reduce((total, item) => total + item.quantity, 0);
   };
 
   const getTotalPrice = () => {
+    if (isCartBlocked) return 0;
     return items.reduce((total, item) => {
       let price = item.product.price;
       if (item.selectedSize && item.product.variants) {
@@ -102,10 +135,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const isInCart = (productId: string, size?: string) => {
+    if (isCartBlocked) return false;
     return items.some(item => item.product.id === productId && item.selectedSize === size);
   };
 
   const getItemQuantity = (productId: string, size?: string) => {
+    if (isCartBlocked) return 0;
     const item = items.find(item => item.product.id === productId && item.selectedSize === size);
     return item ? item.quantity : 0;
   };
@@ -120,7 +155,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       getTotalItems,
       getTotalPrice,
       isInCart,
-      getItemQuantity
+      getItemQuantity,
+      isCartBlocked,
+      restrictionReason: reason
     }}>
       {children}
     </CartContext.Provider>

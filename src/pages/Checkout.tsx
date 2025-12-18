@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient';
 import { ArrowLeft, CreditCard, Shield, CheckCircle, User, MapPin, Phone, Mail, Calendar, Lock, AlertCircle } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { useGeoRestriction } from '../context/GeoRestrictionContext';
 
 interface CustomerData {
   firstName: string;
@@ -31,6 +32,7 @@ const Checkout: React.FC = () => {
   const { items, getTotalPrice, clearCart } = useCart();
   const { updateProduct } = useProducts();
   const navigate = useNavigate();
+  const { isRestricted, reason } = useGeoRestriction();
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -58,6 +60,38 @@ const Checkout: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Partial<CustomerData>>({});
+
+  if (isRestricted) {
+    return (
+      <div className="min-h-screen bg-cream-25 pt-24 pb-12 flex items-center justify-center">
+        <div className="max-w-lg mx-auto bg-white border border-beige-200 rounded-lg p-8 text-center shadow-sm">
+          <div className="bg-amber-100 w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4">
+            <AlertCircle className="h-8 w-8 text-amber-600" />
+          </div>
+          <h1 className="font-playfair text-2xl font-bold text-gray-900 mb-3">
+            Checkout no disponible
+          </h1>
+          <p className="font-inter text-gray-700 mb-4">
+            {reason || 'En Pimentel ofrecemos solo vista de catálogo. Contáctanos para coordinar tu compra.'}
+          </p>
+          <div className="space-x-3">
+            <Link
+              to="/catalog"
+              className="inline-flex items-center bg-gold-500 hover:bg-gold-600 text-white px-5 py-3 rounded-md font-medium transition-colors duration-200"
+            >
+              Seguir viendo productos
+            </Link>
+            <Link
+              to="/contact"
+              className="inline-flex items-center border border-gold-500 text-gold-700 hover:bg-cream-100 px-5 py-3 rounded-md font-medium transition-colors duration-200"
+            >
+              Contactar
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Redirect if cart is empty
   if (items.length === 0) {

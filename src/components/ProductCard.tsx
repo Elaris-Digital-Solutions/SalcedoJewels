@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, ShoppingBag, Plus } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { Product } from '../types/Product';
 import { useCart } from '../context/CartContext';
 import { getOptimizedImageUrl } from '../utils/imageUtils';
+import { useGeoRestriction } from '../context/GeoRestrictionContext';
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false }) => {
   const { isInCart } = useCart();
+  const { isRestricted } = useGeoRestriction();
   const optimizedImage = getOptimizedImageUrl(product.mainImage, 500);
 
   return (
@@ -70,7 +72,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false }) 
         </p>
         <div className="flex items-center justify-between">
           <span className="font-playfair text-xl font-bold text-gold-600">
-            ${product.price.toLocaleString()}
+            {isRestricted ? 'Precio disponible por contacto' : `$${product.price.toLocaleString()}`}
           </span>
           <div className="flex space-x-2">
             <Link
