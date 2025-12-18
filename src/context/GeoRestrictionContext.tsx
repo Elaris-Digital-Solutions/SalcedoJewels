@@ -34,21 +34,20 @@ const isPimentelRestricted = (city?: string, region?: string, country?: string) 
   const regionName = normalize(region);
   const countryName = normalize(country);
 
-  // Solo bloquear si la ciudad reportada es Pimentel y el país es Perú.
-  if (!cityName.includes('pimentel')) return false;
+  // Bloquear todo Lambayeque (Perú); mantener Pimentel como fallback por si no llega región.
   if (!(countryName === 'peru' || countryName === 'pe')) return false;
 
-  // Si existe región y no es Lambayeque, no bloquear.
-  if (regionName && !regionName.includes('lambayeque')) return false;
+  if (regionName.includes('lambayeque')) return true;
+  if (cityName.includes('pimentel')) return true;
 
-  return true;
+  return false;
 };
 
 const evaluateRestriction = (location: LocationInfo) => {
   const restricted = isPimentelRestricted(location.city, location.region, location.country);
   return {
     restricted,
-    reason: restricted ? 'Catálogo limitado en Pimentel (Lambayeque, Perú).' : undefined
+    reason: restricted ? 'Catálogo limitado en Lambayeque, Perú.' : undefined
   };
 };
 
