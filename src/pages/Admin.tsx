@@ -80,6 +80,29 @@ const SortableProductItem = ({ product }: { product: Product }) => {
   );
 };
 
+// Sortable Category Item
+const SortableCategoryItem = ({ category }: { category: string }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: category });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="px-3 py-2 bg-white border border-beige-200 rounded shadow-sm cursor-move hover:shadow-md transition-shadow text-sm font-medium text-gray-800 flex items-center justify-between"
+    >
+      <span>{category}</span>
+      <GripVertical className="h-4 w-4 text-gray-500" />
+    </div>
+  );
+};
+
 type SelectedImage = {
   file: File;
   previewUrl: string;
@@ -100,6 +123,7 @@ const Admin: React.FC = () => {
   
   // Organize State
   const [orderedProducts, setOrderedProducts] = useState<Product[]>([]);
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   const sensors = useSensors(
@@ -111,6 +135,8 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     setOrderedProducts(products);
+    const uniqueCategories = Array.from(new Set(products.map(p => p.category || 'General')));
+    setCategoryOrder(uniqueCategories);
   }, [products]);
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -136,6 +162,21 @@ const Admin: React.FC = () => {
     } finally {
       setIsSavingOrder(false);
     }
+  };
+
+  const applyCategoryOrdering = () => {
+    if (!categoryOrder.length) return;
+    setOrderedProducts(prev => {
+      const grouped = categoryOrder.flatMap(cat => prev.filter(p => (p.category || 'General') === cat));
+      const remaining = prev.filter(p => !categoryOrder.includes(p.category || 'General'));
+      return [...grouped, ...remaining];
+    });
+  };
+
+  const applyPriceSort = (direction: 'asc' | 'desc') => {
+    setOrderedProducts(prev => {
+      return [...prev].sort((a, b) => direction === 'asc' ? a.price - b.price : b.price - a.price);
+    });
   };
   
   // Product Form State
@@ -1948,11 +1989,16 @@ const Admin: React.FC = () => {
                                       <div className="flex-1 space-y-1">
                                         <label className="text-sm font-medium text-gray-700">Agregar cuota</label>
                                         <input
-                                          type="number"
-                                          min="0"
-                                          step="0.01"
+                                          type="text"
+                                          inputMode="decimal"
+                                          pattern="[0-9]*[.,]?[0-9]*"
                                           value={(installmentDrafts[order.id]?.amount) || ''}
-                                          onChange={(e) => setInstallmentDrafts(prev => ({ ...prev, [order.id]: { ...(prev[order.id] || { note: '' }), amount: e.target.value } }))}
+                                          onChange={(e) => {
+                                            const normalized = e.target.value.replace(/,/g, '.');
+                                            if (/^\d*(\.\d*)?$/.test(normalized)) {
+                                              setInstallmentDrafts(prev => ({ ...prev, [order.id]: { ...(prev[order.id] || { note: '' }), amount: normalized } }));
+                                            }
+                                          }}
                                           placeholder="Monto"
                                           className="w-full border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
                                         />
@@ -2015,6 +2061,64 @@ const Admin: React.FC = () => {
                   </>
                 )}
               </button>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-beige-200 space-y-3">
+                <h4 className="text-sm font-semibold text-gray-900">Orden rápido por precio</h4>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => applyPriceSort('desc')}
+                    className="px-3 py-2 text-sm bg-cream-100 hover:bg-cream-200 text-gray-800 rounded-md border border-beige-200"
+                  >
+                    Mayor a menor
+                  </button>
+                  <button
+                    onClick={() => applyPriceSort('asc')}
+                    className="px-3 py-2 text-sm bg-cream-100 hover:bg-cream-200 text-gray-800 rounded-md border border-beige-200"
+                  >
+                    Menor a mayor
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">Usa esto como base, luego ajusta manualmente productos puntuales.</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-beige-200 space-y-3 xl:col-span-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">Ordenar por categorías (drag & drop)</h4>
+                    <p className="text-xs text-gray-500">Arrastra categorías; aplicamos el orden sobre los productos.</p>
+                  </div>
+                  <button
+                    onClick={applyCategoryOrdering}
+                    className="px-3 py-2 text-sm bg-gold-500 hover:bg-gold-600 text-white rounded-md"
+                  >
+                    Aplicar a productos
+                  </button>
+                </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event) => {
+                    const { active, over } = event;
+                    if (over && active.id !== over.id) {
+                      setCategoryOrder((cats) => {
+                        const oldIndex = cats.indexOf(active.id as string);
+                        const newIndex = cats.indexOf(over.id as string);
+                        return arrayMove(cats, oldIndex, newIndex);
+                      });
+                    }
+                  }}
+                >
+                  <SortableContext items={categoryOrder} strategy={rectSortingStrategy}>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {categoryOrder.map((cat) => (
+                        <SortableCategoryItem key={cat} category={cat} />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              </div>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
