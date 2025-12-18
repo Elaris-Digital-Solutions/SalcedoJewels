@@ -2,7 +2,6 @@ import React from 'react';
 import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { Link } from 'react-router-dom';
-import { useGeoRestriction } from '../../context/GeoRestrictionContext';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -11,52 +10,8 @@ interface CartDrawerProps {
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { items, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
-  const { isRestricted, reason } = useGeoRestriction();
 
   if (!isOpen) return null;
-
-  if (isRestricted) {
-    return (
-      <>
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300"
-          onClick={onClose}
-        />
-        <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 shadow-xl">
-          <div className="flex flex-col h-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-playfair text-xl font-bold text-gray-900">
-                Catálogo limitado
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-cream-100 rounded-full transition-colors duration-200"
-              >
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-            <div className="flex-1 flex items-center">
-              <div className="space-y-3 text-gray-700">
-                <p>
-                  Por restricciones geográficas el carrito no está disponible en tu ubicación.
-                </p>
-                <p className="text-sm text-gray-500">
-                  {reason || 'Contáctanos para coordinar tu compra y obtener precios.'}
-                </p>
-                <Link
-                  to="/contact"
-                  onClick={onClose}
-                  className="inline-flex items-center bg-gold-500 hover:bg-gold-600 text-white px-5 py-2 rounded-md font-medium transition-colors duration-200"
-                >
-                  Escríbenos
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
 
   return (
     <>

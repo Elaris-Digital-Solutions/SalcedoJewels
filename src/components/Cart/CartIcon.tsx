@@ -1,7 +1,6 @@
 import React from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
-import { useGeoRestriction } from '../../context/GeoRestrictionContext';
 
 interface CartIconProps {
   onClick: () => void;
@@ -9,10 +8,7 @@ interface CartIconProps {
 
 const CartIcon: React.FC<CartIconProps> = ({ onClick }) => {
   const { getTotalItems } = useCart();
-  const { isRestricted } = useGeoRestriction();
   const totalItems = getTotalItems();
-
-  if (isRestricted) return null;
 
   return (
     <button

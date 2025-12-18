@@ -4,13 +4,11 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, Share2, ShoppingBag, Truck, Shield, CreditCard, CheckCircle, XCircle, Plus, Minus } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
-import { useGeoRestriction } from '../context/GeoRestrictionContext';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { getProductById } = useProducts();
   const { addToCart, getItemQuantity, updateQuantity } = useCart();
-  const { isRestricted, reason } = useGeoRestriction();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -93,12 +91,6 @@ const ProductDetail: React.FC = () => {
         url={`/product/${product.id}`}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {isRestricted && (
-          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <p className="font-semibold">Catálogo en vista limitada para tu zona.</p>
-            <p>{reason || 'En Pimentel mostramos información sin precios ni compras en línea. Escríbenos para cotizar.'}</p>
-          </div>
-        )}
         {/* Breadcrumb */}
         <div className="mb-8">
           <nav className="flex items-center space-x-2 text-sm">
@@ -163,11 +155,8 @@ const ProductDetail: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex flex-col">
                   <span className="font-playfair text-3xl font-bold text-gold-600">
-                    {isRestricted ? 'Precio disponible por contacto' : `$${currentPrice.toLocaleString()}`}
+                    ${currentPrice.toLocaleString()}
                   </span>
-                  {isRestricted && (
-                    <span className="text-sm text-gray-600">El carrito y el pago están deshabilitados en tu ubicación.</span>
-                  )}
                 </div>
                 {/* Stock Status */}
                 <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border ${
@@ -234,151 +223,112 @@ const ProductDetail: React.FC = () => {
             )}
 
             {/* Quantity and Cart Controls */}
-            {isRestricted ? (
+            {(!hasVariants || selectedSize) && !isOutOfStock && (
               <div className="space-y-4">
-                <div className="bg-cream-100 border border-beige-300 rounded-lg p-4">
-                  <h4 className="font-inter font-semibold text-gray-900 mb-2">
-                    Compra asistida
-                  </h4>
-                  <p className="font-inter text-sm text-gray-600 mb-3">
-                    En tu ubicación solo ofrecemos vista de catálogo. Escríbenos para conocer el precio y coordinar tu compra.
-                  </p>
-                  <Link
-                    to="/contact"
-                    className="inline-flex items-center space-x-2 bg-gold-500 hover:bg-gold-600 text-white px-5 py-3 rounded-md font-medium transition-colors duration-200"
-                  >
-                    <ArrowLeft className="h-4 w-4 rotate-180" />
-                    <span>Contactar</span>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <>
-                {(!hasVariants || selectedSize) && !isOutOfStock && (
-                  <div className="space-y-4">
-                    {cartQuantity > 0 ? (
-                      /* Product already in cart - show cart controls */
-                      <div className="bg-beige-50 border border-beige-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="font-inter font-medium text-gray-800">
-                            En tu carrito: {cartQuantity} {cartQuantity === 1 ? 'unidad' : 'unidades'}
-                            {selectedSize && <span className="text-sm text-gray-500 ml-1">({selectedSize})</span>}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => handleUpdateCartQuantity(cartQuantity - 1)}
-                            className="p-2 bg-white border border-beige-300 rounded-md hover:bg-beige-50 transition-colors duration-200"
-                          >
-                            <Minus className="h-4 w-4 text-gray-600" />
-                          </button>
-                          <span className="font-inter font-semibold text-gray-800 min-w-[2rem] text-center">
-                            {cartQuantity}
-                          </span>
-                          <button
-                            onClick={() => handleUpdateCartQuantity(cartQuantity + 1)}
-                            disabled={cartQuantity >= currentStock}
-                            className={`p-2 bg-white border border-beige-300 rounded-md transition-colors duration-200 ${
-                              cartQuantity >= currentStock ? 'opacity-50 cursor-not-allowed' : 'hover:bg-beige-50'
-                            }`}
-                          >
-                            <Plus className="h-4 w-4 text-gray-600" />
-                          </button>
-                        </div>
+                {cartQuantity > 0 ? (
+                  /* Product already in cart - show cart controls */
+                  <div className="bg-beige-50 border border-beige-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-inter font-medium text-gray-800">
+                        En tu carrito: {cartQuantity} {cartQuantity === 1 ? 'unidad' : 'unidades'}
+                        {selectedSize && <span className="text-sm text-gray-500 ml-1">({selectedSize})</span>}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => handleUpdateCartQuantity(cartQuantity - 1)}
+                        className="p-2 bg-white border border-beige-300 rounded-md hover:bg-beige-50 transition-colors duration-200"
+                      >
+                        <Minus className="h-4 w-4 text-gray-600" />
+                      </button>
+                      <span className="font-inter font-semibold text-gray-800 min-w-[2rem] text-center">
+                        {cartQuantity}
+                      </span>
+                      <button
+                        onClick={() => handleUpdateCartQuantity(cartQuantity + 1)}
+                        disabled={cartQuantity >= currentStock}
+                        className={`p-2 bg-white border border-beige-300 rounded-md transition-colors duration-200 ${
+                          cartQuantity >= currentStock ? 'opacity-50 cursor-not-allowed' : 'hover:bg-beige-50'
+                        }`}
+                      >
+                        <Plus className="h-4 w-4 text-gray-600" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Product not in cart - show add to cart controls */
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-inter text-sm font-medium text-gray-700">
+                        Cantidad:
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
+                        >
+                          <Minus className="h-4 w-4 text-gray-600" />
+                        </button>
+                        <span className="font-inter font-semibold text-gray-900 min-w-[2rem] text-center">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
+                          className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
+                        >
+                          <Plus className="h-4 w-4 text-gray-600" />
+                        </button>
                       </div>
-                    ) : (
-                      /* Product not in cart - show add to cart controls */
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <span className="font-inter text-sm font-medium text-gray-700">
-                            Cantidad:
-                          </span>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                              className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
-                            >
-                              <Minus className="h-4 w-4 text-gray-600" />
-                            </button>
-                            <span className="font-inter font-semibold text-gray-900 min-w-[2rem] text-center">
-                              {quantity}
-                            </span>
-                            <button
-                              onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
-                              className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
-                            >
-                              <Plus className="h-4 w-4 text-gray-600" />
-                            </button>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            (Máx: {currentStock})
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                      <span className="text-xs text-gray-500">
+                        (Máx: {currentStock})
+                      </span>
+                    </div>
                   </div>
                 )}
-
-                {/* Actions */}
-                <div className="space-y-4">
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={handleAddToCart}
-                      disabled={!canAddToCart}
-                      className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${
-                        canAddToCart
-                          ? 'bg-gold-500 hover:bg-gold-600 text-white hover:shadow-lg'
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      <ShoppingBag className="h-5 w-5" />
-                      <span>
-                        {hasVariants && !selectedSize
-                          ? 'Selecciona una talla'
-                          : !canAddToCart 
-                            ? (currentStock > 0 && cartQuantity >= currentStock ? 'Máximo alcanzado' : 'Agotado')
-                            : cartQuantity > 0 
-                              ? 'Agregar Más' 
-                              : 'Agregar al Carrito'
-                        }
-                      </span>
-                    </button>
-                    
-                    <button
-                      onClick={() => setIsFavorite(!isFavorite)}
-                      className={`p-3 rounded-md border transition-all duration-200 ${
-                        isFavorite
-                          ? 'border-red-300 bg-red-50 text-red-600'
-                          : 'border-beige-300 hover:border-gold-300 hover:bg-cream-50 text-gray-600'
-                      }`}
-                    >
-                      <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
-                    </button>
-                    
-                    <button className="p-3 rounded-md border border-beige-300 hover:border-gold-300 hover:bg-cream-50 text-gray-600 transition-all duration-200">
-                      <Share2 className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {/* Contact for Purchase */}
-                  <div className="bg-cream-100 border border-beige-300 rounded-lg p-4">
-                    <h4 className="font-inter font-semibold text-gray-900 mb-2">
-                      ¿Interesado en esta pieza?
-                    </h4>
-                    <p className="font-inter text-sm text-gray-600 mb-3">
-                      Contáctanos para más información sobre disponibilidad, personalización o para programar una cita.
-                    </p>
-                    <Link
-                      to="/contact"
-                      className="inline-flex items-center space-x-2 text-gold-600 hover:text-gold-700 font-medium text-sm"
-                    >
-                      <span>Contactar ahora</span>
-                      <ArrowLeft className="h-4 w-4 rotate-180" />
-                    </Link>
-                  </div>
-                </div>
-              </>
+              </div>
             )}
+
+            {/* Actions */}
+            <div className="space-y-4">
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!canAddToCart}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${
+                    canAddToCart
+                      ? 'bg-gold-500 hover:bg-gold-600 text-white hover:shadow-lg'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  <span>
+                    {hasVariants && !selectedSize
+                      ? 'Selecciona una talla'
+                      : !canAddToCart 
+                        ? (currentStock > 0 && cartQuantity >= currentStock ? 'Máximo alcanzado' : 'Agotado')
+                        : cartQuantity > 0 
+                          ? 'Agregar Más' 
+                          : 'Agregar al Carrito'
+                    }
+                  </span>
+                </button>
+                
+                <button
+                  onClick={() => setIsFavorite(!isFavorite)}
+                  className={`p-3 rounded-md border transition-all duration-200 ${
+                    isFavorite
+                      ? 'border-red-300 bg-red-50 text-red-600'
+                      : 'border-beige-300 hover:border-gold-300 hover:bg-cream-50 text-gray-600'
+                  }`}
+                >
+                  <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+                </button>
+                
+                <button className="p-3 rounded-md border border-beige-300 hover:border-gold-300 hover:bg-cream-50 text-gray-600 transition-all duration-200">
+                  <Share2 className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
 
             {/* Product Features */}
             <div className="border-t border-beige-200 pt-6">

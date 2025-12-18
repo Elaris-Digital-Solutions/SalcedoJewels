@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useGeoRestriction } from '../../context/GeoRestrictionContext';
 import CartIcon from '../Cart/CartIcon';
 import CartDrawer from '../Cart/CartDrawer';
 
@@ -11,7 +10,6 @@ const Header: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const location = useLocation();
   const { isAuthenticated } = useAuth();
-  const { isRestricted } = useGeoRestriction();
 
   const navItems = [
     { name: 'Inicio', path: '/' },
@@ -55,7 +53,7 @@ const Header: React.FC = () => {
             {/* Right Side Actions */}
             <div className="flex items-center space-x-4">
               {/* Cart Icon */}
-              {!isRestricted && <CartIcon onClick={() => setIsCartOpen(true)} />}
+              <CartIcon onClick={() => setIsCartOpen(true)} />
 
               {/* Admin Link - Solo visible si está autenticado */}
               {isAuthenticated && (
@@ -114,9 +112,7 @@ const Header: React.FC = () => {
       </header>
 
       {/* Cart Drawer */}
-      {!isRestricted && (
-        <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-      )}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
   );
 };
