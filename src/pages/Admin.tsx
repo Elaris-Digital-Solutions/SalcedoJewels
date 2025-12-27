@@ -10,7 +10,7 @@ import AdminLogin from '../components/AdminLogin';
 import { productDescriptions } from '../data/productDescriptions';
 import { getOptimizedImageUrl } from '../utils/imageUtils';
 import {
-  DndContext, 
+  DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -51,14 +51,13 @@ const SortableProductItem = ({ product }: { product: Product }) => {
       style={style}
       {...attributes}
       {...listeners}
-      className={`p-2 rounded border shadow-sm cursor-move hover:shadow-md transition-shadow relative group ${
-        isOutOfStock ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200'
-      }`}
+      className={`p-2 rounded border shadow-sm cursor-move hover:shadow-md transition-shadow relative group ${isOutOfStock ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200'
+        }`}
     >
       <div className="aspect-square bg-gray-100 rounded overflow-hidden mb-2 relative">
-        <img 
-          src={optimizedImage} 
-          alt={product.name} 
+        <img
+          src={optimizedImage}
+          alt={product.name}
           className={`w-full h-full object-cover pointer-events-none ${isOutOfStock ? 'grayscale opacity-60' : ''}`}
         />
         {isOutOfStock && (
@@ -120,7 +119,7 @@ const Admin: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct, updateProductOrder } = useProducts();
   const { isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'upload' | 'manage' | 'orders' | 'organize' | 'stats'>('upload');
-  
+
   // Organize State
   const [orderedProducts, setOrderedProducts] = useState<Product[]>([]);
   const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
@@ -178,14 +177,16 @@ const Admin: React.FC = () => {
       return [...prev].sort((a, b) => direction === 'asc' ? a.price - b.price : b.price - a.price);
     });
   };
-  
+
   // Product Form State
   const [productName, setProductName] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [productCategory, setProductCategory] = useState('Anillos');
   const [productDescription, setProductDescription] = useState(productDescriptions['Anillos'][0]);
   const [descriptionIndex, setDescriptionIndex] = useState(0);
-  
+  const [productBrightness, setProductBrightness] = useState(100);
+  const [productContrast, setProductContrast] = useState(100);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [editingImages, setEditingImages] = useState<EditingImage[]>([]);
@@ -194,7 +195,7 @@ const Admin: React.FC = () => {
   const [mainUploadIndex, setMainUploadIndex] = useState(0);
 
   const selectedImagesRef = useRef<SelectedImage[]>([]);
-  
+
   // Order Management State
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -210,7 +211,7 @@ const Admin: React.FC = () => {
   // Product variants / stock state (must be declared before any early returns)
   const [hasVariants, setHasVariants] = useState(false);
   const [stock, setStock] = useState(1);
-  const [variants, setVariants] = useState<{size: string, stock: number, price?: number}[]>([]);
+  const [variants, setVariants] = useState<{ size: string, stock: number, price?: number }[]>([]);
   const [newVariantSize, setNewVariantSize] = useState('');
   const [newVariantStock, setNewVariantStock] = useState(1);
   const [newVariantPrice, setNewVariantPrice] = useState('');
@@ -274,7 +275,7 @@ const Admin: React.FC = () => {
 
     try {
       const item = order.items[itemIndex];
-      
+
       // 1. Restaurar stock del producto
       const { data: productData } = await supabase
         .from('products')
@@ -289,15 +290,15 @@ const Admin: React.FC = () => {
         const sizeToRestore = item.selectedSize;
 
         if (sizeToRestore && Array.isArray(newVariants)) {
-            newVariants = newVariants.map((v: any) => {
-              if (v.size === sizeToRestore) {
-                return { ...v, stock: (v.stock || 0) + quantityToRestore };
-              }
-              return v;
-            });
-            newStock = newVariants.reduce((acc: number, v: any) => acc + (v.stock || 0), 0);
+          newVariants = newVariants.map((v: any) => {
+            if (v.size === sizeToRestore) {
+              return { ...v, stock: (v.stock || 0) + quantityToRestore };
+            }
+            return v;
+          });
+          newStock = newVariants.reduce((acc: number, v: any) => acc + (v.stock || 0), 0);
         } else {
-            newStock = (productData.stock || 0) + quantityToRestore;
+          newStock = (productData.stock || 0) + quantityToRestore;
         }
 
         await updateProduct(item.product.id, {
@@ -309,7 +310,7 @@ const Admin: React.FC = () => {
 
       // 2. Actualizar pedido (remover item y recalcular total)
       const newItems = order.items.filter((_, idx) => idx !== itemIndex);
-      
+
       // Si no quedan items, quizás deberíamos eliminar el pedido completo o dejarlo vacío con total 0
       // Aquí lo dejaremos vacío con total 0
       const newTotal = newItems.reduce((acc, curr) => acc + (curr.quantity * curr.product.price), 0);
@@ -358,15 +359,15 @@ const Admin: React.FC = () => {
           const sizeToRestore = item.selectedSize;
 
           if (sizeToRestore && Array.isArray(newVariants)) {
-             newVariants = newVariants.map((v: any) => {
-                if (v.size === sizeToRestore) {
-                  return { ...v, stock: (v.stock || 0) + quantityToRestore };
-                }
-                return v;
-             });
-             newStock = newVariants.reduce((acc: number, v: any) => acc + (v.stock || 0), 0);
+            newVariants = newVariants.map((v: any) => {
+              if (v.size === sizeToRestore) {
+                return { ...v, stock: (v.stock || 0) + quantityToRestore };
+              }
+              return v;
+            });
+            newStock = newVariants.reduce((acc: number, v: any) => acc + (v.stock || 0), 0);
           } else {
-             newStock = (productData.stock || 0) + quantityToRestore;
+            newStock = (productData.stock || 0) + quantityToRestore;
           }
 
           // Update product
@@ -389,7 +390,7 @@ const Admin: React.FC = () => {
       // 3. Actualizar lista local
       setOrders(orders.filter(o => o.id !== order.id));
       if (selectedOrder?.id === order.id) setSelectedOrder(null);
-      
+
       alert('Pedido eliminado y stock restaurado correctamente.');
 
     } catch (error) {
@@ -408,14 +409,14 @@ const Admin: React.FC = () => {
       if (error) throw error;
 
       // Update local state
-      setOrders(orders.map(order => 
+      setOrders(orders.map(order =>
         order.id === orderId ? { ...order, status: newStatus as any } : order
       ));
-      
+
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder({ ...selectedOrder, status: newStatus as any });
       }
-      
+
       alert('Estado actualizado correctamente');
     } catch (error: any) {
       console.error('Error updating status:', error);
@@ -743,7 +744,7 @@ const Admin: React.FC = () => {
 
   // Si no está autenticado, mostrar el formulario de login
   if (!isAuthenticated) {
-    return <AdminLogin onLogin={() => {}} />;
+    return <AdminLogin onLogin={() => { }} />;
   }
 
 
@@ -833,7 +834,9 @@ const Admin: React.FC = () => {
         featured: false,
         inStock: totalStock > 0,
         stock: totalStock,
-        variants: hasVariants ? variants : undefined
+        variants: hasVariants ? variants : undefined,
+        brightness: productBrightness,
+        contrast: productContrast
       };
 
       const created = await addProduct(newProduct);
@@ -920,7 +923,7 @@ const Admin: React.FC = () => {
       const defaultDesc = productDescriptions[productCategory]?.[0] || '';
       setProductDescription(defaultDesc);
       setDescriptionIndex(0);
-      
+
       setSelectedImages(prev => {
         prev.forEach(img => img.previewUrl && URL.revokeObjectURL(img.previewUrl));
         return [];
@@ -929,6 +932,8 @@ const Admin: React.FC = () => {
       setHasVariants(false);
       setStock(1);
       setVariants([]);
+      setProductBrightness(100);
+      setProductContrast(100);
       alert('Producto agregado exitosamente');
     } catch (error) {
       console.error('Error creating product:', error);
@@ -976,7 +981,7 @@ const Admin: React.FC = () => {
 
   const handleSaveEdit = async () => {
     if (!editingProduct) return;
-    
+
     setIsUploading(true);
     try {
       // Upload new images
@@ -1007,14 +1012,14 @@ const Admin: React.FC = () => {
 
       const productToSave = {
         ...editingProduct,
-        price: (typeof editingProduct.price === 'string' && !isNaN(parseFloat(editingProduct.price))) 
-          ? parseFloat(editingProduct.price) 
+        price: (typeof editingProduct.price === 'string' && !isNaN(parseFloat(editingProduct.price)))
+          ? parseFloat(editingProduct.price)
           : (typeof editingProduct.price === 'number' ? editingProduct.price : 0),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         variants: editingProduct.variants?.map((v: any) => ({
           ...v,
-          price: (v.price !== undefined && v.price !== '' && !isNaN(parseFloat(v.price.toString()))) 
-            ? parseFloat(v.price.toString()) 
+          price: (v.price !== undefined && v.price !== '' && !isNaN(parseFloat(v.price.toString())))
+            ? parseFloat(v.price.toString())
             : undefined
         })),
         mainImage: finalUrls[0] || editingProduct.mainImage,
@@ -1052,7 +1057,7 @@ const Admin: React.FC = () => {
               Gestiona el catálogo de productos de Salcedo Jewels
             </p>
           </div>
-          
+
           {/* Logout Button */}
           <button
             onClick={handleLogout}
@@ -1069,55 +1074,50 @@ const Admin: React.FC = () => {
             <nav className="-mb-px flex space-x-8">
               <button
                 onClick={() => setActiveTab('upload')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                  activeTab === 'upload'
-                    ? 'border-gold-500 text-gold-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'upload'
+                  ? 'border-gold-500 text-gold-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <Upload className="h-4 w-4 inline mr-2" />
                 Subir Producto
               </button>
               <button
                 onClick={() => setActiveTab('manage')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                  activeTab === 'manage'
-                    ? 'border-gold-500 text-gold-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'manage'
+                  ? 'border-gold-500 text-gold-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <Eye className="h-4 w-4 inline mr-2" />
                 Gestionar Productos ({products.length})
               </button>
               <button
                 onClick={() => setActiveTab('orders')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                  activeTab === 'orders'
-                    ? 'border-gold-500 text-gold-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'orders'
+                  ? 'border-gold-500 text-gold-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <ShoppingBag className="h-4 w-4 inline mr-2" />
                 Pedidos
               </button>
               <button
                 onClick={() => setActiveTab('organize')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                  activeTab === 'organize'
-                    ? 'border-gold-500 text-gold-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'organize'
+                  ? 'border-gold-500 text-gold-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <LayoutGrid className="h-4 w-4 inline mr-2" />
                 Organizar Productos
               </button>
               <button
                 onClick={() => setActiveTab('stats')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                  activeTab === 'stats'
-                    ? 'border-gold-500 text-gold-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'stats'
+                  ? 'border-gold-500 text-gold-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <BarChart3 className="h-4 w-4 inline mr-2" />
                 Estadísticas
@@ -1189,6 +1189,37 @@ const Admin: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-beige-200 mt-4">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-700">Brillo</label>
+                      <span className="text-xs text-gray-500">{productBrightness}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="50"
+                      max="150"
+                      value={productBrightness}
+                      onChange={(e) => setProductBrightness(Number(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-700">Contraste</label>
+                      <span className="text-xs text-gray-500">{productContrast}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="50"
+                      max="150"
+                      value={productContrast}
+                      onChange={(e) => setProductContrast(Number(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1458,12 +1489,12 @@ const Admin: React.FC = () => {
                   <div key={product.id} className="bg-white rounded-lg shadow-sm border border-beige-200 overflow-hidden">
                     <div className="aspect-square overflow-hidden">
                       <img
-                        src={product.mainImage}
+                        src={getOptimizedImageUrl(product.mainImage, 400, product.brightness, product.contrast)}
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    
+
                     <div className="p-4">
                       {editingProduct?.id === product.id ? (
                         // Edit Mode
@@ -1474,7 +1505,7 @@ const Admin: React.FC = () => {
                             <input
                               type="text"
                               value={editingProduct.name}
-                              onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
+                              onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
                               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                             />
                           </div>
@@ -1489,7 +1520,7 @@ const Admin: React.FC = () => {
                               onChange={(e) => {
                                 const val = e.target.value.replace(/,/g, '.');
                                 if (/^\d*\.?\d*$/.test(val)) {
-                                  setEditingProduct({...editingProduct, price: val});
+                                  setEditingProduct({ ...editingProduct, price: val });
                                 }
                               }}
                               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
@@ -1501,7 +1532,7 @@ const Admin: React.FC = () => {
                             <label className="block text-xs font-medium text-gray-700">Categoría</label>
                             <select
                               value={editingProduct.category}
-                              onChange={(e) => setEditingProduct({...editingProduct, category: e.target.value})}
+                              onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
                               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                             >
                               <option value="Anillos">Anillos</option>
@@ -1520,7 +1551,7 @@ const Admin: React.FC = () => {
                             <label className="block text-xs font-medium text-gray-700">Descripción</label>
                             <textarea
                               value={editingProduct.description}
-                              onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})}
+                              onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
                               rows={3}
                               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                             />
@@ -1529,7 +1560,7 @@ const Admin: React.FC = () => {
                           {/* Image Management */}
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-2">Imágenes del Producto</label>
-                            
+
                             {/* Add Images Button */}
                             <div className="mb-3">
                               <input
@@ -1542,37 +1573,76 @@ const Admin: React.FC = () => {
                             </div>
 
                             {/* Images Grid */}
-                            <div className="grid grid-cols-3 gap-2">
-                              {editingImages.map((img, index) => (
-                                <div key={img.id} className="border border-gray-200 rounded overflow-hidden bg-white relative group">
-                                  <div className="aspect-square bg-gray-50">
-                                    <img src={img.url} alt="Product" className="w-full h-full object-cover" />
-                                  </div>
-                                  <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 rounded-bl">
-                                    <button
-                                      type="button"
-                                      onClick={() => removeEditImage(index)}
-                                      className="text-red-600 hover:text-red-800"
-                                      title="Eliminar"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  </div>
-                                  <div className="p-1 bg-white border-t border-gray-100">
-                                    <button
-                                      type="button"
-                                      onClick={() => setMainEditImage(index)}
-                                      className={`w-full text-[10px] py-1 rounded border ${
-                                        index === 0 
-                                          ? 'bg-gold-50 text-gold-800 border-gold-200 font-medium' 
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-3 gap-2">
+                                {editingImages.map((img, index) => (
+                                  <div key={img.id} className="border border-gray-200 rounded overflow-hidden bg-white relative group">
+                                    <div className="aspect-square bg-gray-50">
+                                      <img
+                                        src={img.url}
+                                        alt="Product"
+                                        className="w-full h-full object-cover"
+                                        style={{
+                                          filter: `brightness(${editingProduct.brightness ?? 100}%) contrast(${editingProduct.contrast ?? 100}%)`
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 rounded-bl">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeEditImage(index)}
+                                        className="text-red-600 hover:text-red-800"
+                                        title="Eliminar"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                    <div className="p-1 bg-white border-t border-gray-100">
+                                      <button
+                                        type="button"
+                                        onClick={() => setMainEditImage(index)}
+                                        className={`w-full text-[10px] py-1 rounded border ${index === 0
+                                          ? 'bg-gold-50 text-gold-800 border-gold-200 font-medium'
                                           : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                                      }`}
-                                    >
-                                      {index === 0 ? 'Principal' : 'Hacer Principal'}
-                                    </button>
+                                          }`}
+                                      >
+                                        {index === 0 ? 'Principal' : 'Hacer Principal'}
+                                      </button>
+                                    </div>
                                   </div>
+                                ))}
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-3 pt-2 border-t border-gray-100">
+                                <div>
+                                  <div className="flex justify-between mb-1">
+                                    <label className="text-xs font-medium text-gray-700">Brillo</label>
+                                    <span className="text-[10px] text-gray-500">{editingProduct.brightness ?? 100}%</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="50"
+                                    max="150"
+                                    value={editingProduct.brightness ?? 100}
+                                    onChange={(e) => setEditingProduct({ ...editingProduct, brightness: Number(e.target.value) })}
+                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600"
+                                  />
                                 </div>
-                              ))}
+                                <div>
+                                  <div className="flex justify-between mb-1">
+                                    <label className="text-xs font-medium text-gray-700">Contraste</label>
+                                    <span className="text-[10px] text-gray-500">{editingProduct.contrast ?? 100}%</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    min="50"
+                                    max="150"
+                                    value={editingProduct.contrast ?? 100}
+                                    onChange={(e) => setEditingProduct({ ...editingProduct, contrast: Number(e.target.value) })}
+                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600"
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </div>
 
@@ -1587,15 +1657,15 @@ const Admin: React.FC = () => {
                                   if (e.target.checked) {
                                     // Switch to variants
                                     setEditingProduct({
-                                      ...editingProduct, 
-                                      variants: [], 
+                                      ...editingProduct,
+                                      variants: [],
                                       stock: 0,
                                       inStock: false
                                     });
                                   } else {
                                     // Switch to simple stock
                                     setEditingProduct({
-                                      ...editingProduct, 
+                                      ...editingProduct,
                                       variants: undefined,
                                       stock: 0,
                                       inStock: false
@@ -1610,170 +1680,170 @@ const Admin: React.FC = () => {
                             </div>
 
                             {!Array.isArray(editingProduct.variants) ? (
-                                // Simple Stock
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-700">Stock Total</label>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        const newStock = Math.max(0, (editingProduct.stock || 0) - 1);
-                                        setEditingProduct({
-                                          ...editingProduct,
-                                          stock: newStock,
-                                          inStock: newStock > 0
-                                        });
-                                      }}
-                                      className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
-                                      title="Restar stock"
-                                    >
-                                      <Minus className="h-3 w-3 text-gray-600" />
-                                    </button>
-                                    <input
-                                      type="number"
-                                      value={editingProduct.stock || 0}
-                                      onChange={(e) => {
-                                        const val = parseInt(e.target.value) || 0;
-                                        setEditingProduct({
-                                          ...editingProduct, 
-                                          stock: val,
-                                          inStock: val > 0
-                                        });
-                                      }}
-                                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent text-center"
-                                    />
-                                    <button
-                                      onClick={() => {
-                                        const newStock = (editingProduct.stock || 0) + 1;
-                                        setEditingProduct({
-                                          ...editingProduct,
-                                          stock: newStock,
-                                          inStock: newStock > 0
-                                        });
-                                      }}
-                                      className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
-                                      title="Sumar stock"
-                                    >
-                                      <Plus className="h-3 w-3 text-gray-600" />
-                                    </button>
-                                  </div>
+                              // Simple Stock
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Stock Total</label>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      const newStock = Math.max(0, (editingProduct.stock || 0) - 1);
+                                      setEditingProduct({
+                                        ...editingProduct,
+                                        stock: newStock,
+                                        inStock: newStock > 0
+                                      });
+                                    }}
+                                    className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                                    title="Restar stock"
+                                  >
+                                    <Minus className="h-3 w-3 text-gray-600" />
+                                  </button>
+                                  <input
+                                    type="number"
+                                    value={editingProduct.stock || 0}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value) || 0;
+                                      setEditingProduct({
+                                        ...editingProduct,
+                                        stock: val,
+                                        inStock: val > 0
+                                      });
+                                    }}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gold-500 focus:border-transparent text-center"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      const newStock = (editingProduct.stock || 0) + 1;
+                                      setEditingProduct({
+                                        ...editingProduct,
+                                        stock: newStock,
+                                        inStock: newStock > 0
+                                      });
+                                    }}
+                                    className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                                    title="Sumar stock"
+                                  >
+                                    <Plus className="h-3 w-3 text-gray-600" />
+                                  </button>
                                 </div>
+                              </div>
                             ) : (
-                                // Variants Editor
-                                <div className="space-y-2">
-                                  <label className="block text-xs font-medium text-gray-700">Variantes</label>
-                                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                  {editingProduct.variants?.map((variant: any, idx: number) => (
-                                    <div key={idx} className="flex gap-2 items-center">
-                                      <input
-                                        type="text"
-                                        placeholder="Talla"
-                                        value={variant.size}
-                                        onChange={(e) => {
+                              // Variants Editor
+                              <div className="space-y-2">
+                                <label className="block text-xs font-medium text-gray-700">Variantes</label>
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {editingProduct.variants?.map((variant: any, idx: number) => (
+                                  <div key={idx} className="flex gap-2 items-center">
+                                    <input
+                                      type="text"
+                                      placeholder="Talla"
+                                      value={variant.size}
+                                      onChange={(e) => {
+                                        const newVariants = [...(editingProduct.variants || [])];
+                                        newVariants[idx].size = e.target.value;
+                                        setEditingProduct({ ...editingProduct, variants: newVariants });
+                                      }}
+                                      className="w-1/4 px-2 py-1 text-xs border border-gray-300 rounded"
+                                    />
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      placeholder="Precio"
+                                      value={variant.price || ''}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/,/g, '.');
+                                        if (/^\d*\.?\d*$/.test(val)) {
                                           const newVariants = [...(editingProduct.variants || [])];
-                                          newVariants[idx].size = e.target.value;
-                                          setEditingProduct({...editingProduct, variants: newVariants});
-                                        }}
-                                        className="w-1/4 px-2 py-1 text-xs border border-gray-300 rounded"
-                                      />
-                                      <input
-                                        type="text"
-                                        inputMode="decimal"
-                                        placeholder="Precio"
-                                        value={variant.price || ''}
-                                        onChange={(e) => {
-                                          const val = e.target.value.replace(/,/g, '.');
-                                          if (/^\d*\.?\d*$/.test(val)) {
-                                            const newVariants = [...(editingProduct.variants || [])];
-                                            newVariants[idx].price = val === '' ? undefined : val;
-                                            setEditingProduct({...editingProduct, variants: newVariants});
-                                          }
-                                        }}
-                                        className="w-1/4 px-2 py-1 text-xs border border-gray-300 rounded"
-                                      />
-                                      <div className="flex items-center gap-1 w-1/3">
-                                        <button
-                                          onClick={() => {
-                                            const newVariants = [...(editingProduct.variants || [])];
-                                            newVariants[idx].stock = Math.max(0, (newVariants[idx].stock || 0) - 1);
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
-                                            setEditingProduct({
-                                              ...editingProduct, 
-                                              variants: newVariants, 
-                                              stock: totalStock,
-                                              inStock: totalStock > 0
-                                            });
-                                          }}
-                                          className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
-                                        >
-                                          <Minus className="h-3 w-3 text-gray-600" />
-                                        </button>
-                                        <input
-                                          type="number"
-                                          placeholder="Stock"
-                                          value={variant.stock}
-                                          onChange={(e) => {
-                                            const newVariants = [...(editingProduct.variants || [])];
-                                            newVariants[idx].stock = parseInt(e.target.value) || 0;
-                                            // Update total stock
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
-                                            setEditingProduct({
-                                              ...editingProduct, 
-                                              variants: newVariants, 
-                                              stock: totalStock,
-                                              inStock: totalStock > 0
-                                            });
-                                          }}
-                                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
-                                        />
-                                        <button
-                                          onClick={() => {
-                                            const newVariants = [...(editingProduct.variants || [])];
-                                            newVariants[idx].stock = (newVariants[idx].stock || 0) + 1;
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
-                                            setEditingProduct({
-                                              ...editingProduct, 
-                                              variants: newVariants, 
-                                              stock: totalStock,
-                                              inStock: totalStock > 0
-                                            });
-                                          }}
-                                          className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
-                                        >
-                                          <Plus className="h-3 w-3 text-gray-600" />
-                                        </button>
-                                      </div>
+                                          newVariants[idx].price = val === '' ? undefined : val;
+                                          setEditingProduct({ ...editingProduct, variants: newVariants });
+                                        }
+                                      }}
+                                      className="w-1/4 px-2 py-1 text-xs border border-gray-300 rounded"
+                                    />
+                                    <div className="flex items-center gap-1 w-1/3">
                                       <button
                                         onClick={() => {
+                                          const newVariants = [...(editingProduct.variants || [])];
+                                          newVariants[idx].stock = Math.max(0, (newVariants[idx].stock || 0) - 1);
                                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                          const newVariants = editingProduct.variants?.filter((_: any, i: number) => i !== idx);
-                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                          const totalStock = newVariants?.reduce((acc: number, curr: any) => acc + curr.stock, 0) || 0;
+                                          const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
                                           setEditingProduct({
-                                            ...editingProduct, 
-                                            variants: newVariants, 
+                                            ...editingProduct,
+                                            variants: newVariants,
                                             stock: totalStock,
                                             inStock: totalStock > 0
                                           });
                                         }}
-                                        className="text-red-500 hover:text-red-700"
+                                        className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
                                       >
-                                        <X className="h-4 w-4" />
+                                        <Minus className="h-3 w-3 text-gray-600" />
+                                      </button>
+                                      <input
+                                        type="number"
+                                        placeholder="Stock"
+                                        value={variant.stock}
+                                        onChange={(e) => {
+                                          const newVariants = [...(editingProduct.variants || [])];
+                                          newVariants[idx].stock = parseInt(e.target.value) || 0;
+                                          // Update total stock
+                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                          const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
+                                          setEditingProduct({
+                                            ...editingProduct,
+                                            variants: newVariants,
+                                            stock: totalStock,
+                                            inStock: totalStock > 0
+                                          });
+                                        }}
+                                        className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          const newVariants = [...(editingProduct.variants || [])];
+                                          newVariants[idx].stock = (newVariants[idx].stock || 0) + 1;
+                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                          const totalStock = newVariants.reduce((acc: number, curr: any) => acc + curr.stock, 0);
+                                          setEditingProduct({
+                                            ...editingProduct,
+                                            variants: newVariants,
+                                            stock: totalStock,
+                                            inStock: totalStock > 0
+                                          });
+                                        }}
+                                        className="p-1 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300"
+                                      >
+                                        <Plus className="h-3 w-3 text-gray-600" />
                                       </button>
                                     </div>
-                                  ))}
-                                  <button
-                                    onClick={() => {
-                                      const newVariants = [...(editingProduct.variants || []), { size: '', stock: 0 }];
-                                      setEditingProduct({...editingProduct, variants: newVariants});
-                                    }}
-                                    className="text-xs text-gold-600 hover:text-gold-700 font-medium flex items-center"
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" /> Agregar Variante
-                                  </button>
-                                </div>
+                                    <button
+                                      onClick={() => {
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        const newVariants = editingProduct.variants?.filter((_: any, i: number) => i !== idx);
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        const totalStock = newVariants?.reduce((acc: number, curr: any) => acc + curr.stock, 0) || 0;
+                                        setEditingProduct({
+                                          ...editingProduct,
+                                          variants: newVariants,
+                                          stock: totalStock,
+                                          inStock: totalStock > 0
+                                        });
+                                      }}
+                                      className="text-red-500 hover:text-red-700"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                                <button
+                                  onClick={() => {
+                                    const newVariants = [...(editingProduct.variants || []), { size: '', stock: 0 }];
+                                    setEditingProduct({ ...editingProduct, variants: newVariants });
+                                  }}
+                                  className="text-xs text-gold-600 hover:text-gold-700 font-medium flex items-center"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" /> Agregar Variante
+                                </button>
+                              </div>
                             )}
                           </div>
 
@@ -1809,11 +1879,10 @@ const Admin: React.FC = () => {
                             ${product.price.toLocaleString()}
                           </p>
                           <div className="flex items-center space-x-2">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              product.inStock 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`text-xs px-2 py-1 rounded-full ${product.inStock
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                              }`}>
                               {product.inStock ? 'En stock' : 'Agotado'}
                             </span>
                             {product.featured && (
@@ -1996,214 +2065,213 @@ const Admin: React.FC = () => {
                       {sortedOrders.map((order) => {
                         const { planned, payments, paidAmount, remaining, exceeded } = getInstallmentStats(order);
                         return (
-                        <React.Fragment key={order.id}>
-                          <tr className={selectedOrder?.id === order.id ? 'bg-cream-50' : 'hover:bg-gray-50'}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {order.order_code}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {order.customer_name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(order.created_at).toLocaleDateString('es-PE')}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                              $ {order.total_amount.toLocaleString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <select
-                                value={order.status}
-                                onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                className={`text-xs font-semibold rounded-full px-2 py-1 border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 ${
-                                  order.status === 'Recibido' ? 'bg-yellow-100 text-yellow-800 focus:ring-yellow-500' :
-                                  order.status === 'Confirmado' ? 'bg-blue-100 text-blue-800 focus:ring-blue-500' :
-                                  order.status === 'En proceso' ? 'bg-purple-100 text-purple-800 focus:ring-purple-500' :
-                                  'bg-green-100 text-green-800 focus:ring-green-500'
-                                }`}
-                              >
-                                <option value="Recibido">Recibido</option>
-                                <option value="Confirmado">Confirmado</option>
-                                <option value="En proceso">En proceso</option>
-                                <option value="Entregado">Entregado</option>
-                              </select>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <div className="flex items-center space-x-3">
-                                <button
-                                  onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
-                                  className="text-gold-600 hover:text-gold-900 font-medium flex items-center"
+                          <React.Fragment key={order.id}>
+                            <tr className={selectedOrder?.id === order.id ? 'bg-cream-50' : 'hover:bg-gray-50'}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {order.order_code}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {order.customer_name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(order.created_at).toLocaleDateString('es-PE')}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                $ {order.total_amount.toLocaleString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <select
+                                  value={order.status}
+                                  onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                  className={`text-xs font-semibold rounded-full px-2 py-1 border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 ${order.status === 'Recibido' ? 'bg-yellow-100 text-yellow-800 focus:ring-yellow-500' :
+                                    order.status === 'Confirmado' ? 'bg-blue-100 text-blue-800 focus:ring-blue-500' :
+                                      order.status === 'En proceso' ? 'bg-purple-100 text-purple-800 focus:ring-purple-500' :
+                                        'bg-green-100 text-green-800 focus:ring-green-500'
+                                    }`}
                                 >
-                                  {selectedOrder?.id === order.id ? (
-                                    <>
-                                      <ChevronUp className="h-4 w-4 mr-1" />
-                                      Ocultar
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ChevronDown className="h-4 w-4 mr-1" />
-                                      Ver
-                                    </>
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => deleteOrder(order)}
-                                  className="text-red-600 hover:text-red-900 font-medium flex items-center"
-                                  title="Eliminar pedido"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                          {selectedOrder?.id === order.id && (
-                            <tr>
-                              <td colSpan={6} className="px-6 py-4 bg-cream-50 border-b border-gray-200">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                  <div>
-                                    <h4 className="font-bold text-gray-900 mb-2">Información del Cliente</h4>
-                                    <div className="text-sm text-gray-600 space-y-1">
-                                      <p><span className="font-medium">DNI:</span> {order.customer_dni}</p>
-                                      <p><span className="font-medium">Teléfono:</span> {order.customer_phone}</p>
-                                      <p><span className="font-medium">Dirección:</span> {order.shipping_address}</p>
-                                      <p><span className="font-medium">Método de Pago:</span> {order.payment_method}</p>
-                                      {order.installments && order.installments > 1 && (
-                                        <p><span className="font-medium">Cuotas:</span> {order.installments}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-bold text-gray-900 mb-2">Productos ({order.items.length})</h4>
-                                    <div className="space-y-2">
-                                      {order.items.map((item, idx) => (
-                                        <div key={idx} className="flex items-center space-x-3 text-sm bg-white p-2 rounded border border-gray-200">
-                                          <img 
-                                            src={item.product.mainImage} 
-                                            alt={item.product.name} 
-                                            className="w-10 h-10 object-cover rounded"
-                                          />
-                                          <div className="flex-1">
-                                            <p className="font-medium text-gray-900">{item.product.name}</p>
-                                            <p className="text-gray-500">Cant: {item.quantity} x $ {item.product.price}</p>
-                                            {item.selectedSize && <p className="text-xs text-gray-400">Talla: {item.selectedSize}</p>}
-                                          </div>
-                                          <div className="flex flex-col items-end space-y-1">
-                                            <p className="font-bold text-gray-900">
-                                              $ {(item.quantity * item.product.price).toLocaleString()}
-                                            </p>
-                                            <button 
-                                              onClick={() => deleteOrderItem(order, idx)}
-                                              className="text-red-500 hover:text-red-700 p-1"
-                                              title="Eliminar producto del pedido"
-                                            >
-                                              <Trash2 className="h-4 w-4" />
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                  <div className="md:col-span-2 bg-white rounded border border-beige-200 p-4">
-                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-                                      <div className="space-y-1">
-                                        <h4 className="font-bold text-gray-900">Plan de Cuotas</h4>
-                                        <p className="text-sm text-gray-600">Plan: {planned} | Registradas: {payments.length}</p>
-                                        <p className="text-sm text-gray-600">Pagado: $ {paidAmount.toLocaleString()} | Restante: $ {remaining.toLocaleString()}</p>
-                                      </div>
-                                      {exceeded && (
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Cuotas excedidas</span>
-                                      )}
-                                    </div>
-
-                                    <div className="overflow-x-auto mb-4">
-                                      <table className="min-w-full text-sm">
-                                        <thead>
-                                          <tr className="text-left text-gray-500">
-                                            <th className="py-2 pr-4">Estado</th>
-                                            <th className="py-2 pr-4">Monto</th>
-                                            <th className="py-2 pr-4">Fecha pago</th>
-                                            <th className="py-2 pr-4">Nota</th>
-                                            <th className="py-2 pr-4">Acciones</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-beige-200">
-                                          {payments.length === 0 ? (
-                                            <tr>
-                                              <td colSpan={5} className="py-3 text-gray-500">Aún no hay cuotas registradas.</td>
-                                            </tr>
-                                          ) : payments.map((p) => (
-                                            <tr key={p.id}>
-                                              <td className="py-2 pr-4">
-                                                <label className="inline-flex items-center space-x-2 cursor-pointer">
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={p.paid}
-                                                    onChange={() => toggleInstallmentPaid(order, p.id)}
-                                                    className="rounded text-gold-600 focus:ring-gold-500"
-                                                  />
-                                                  <span className={p.paid ? 'text-green-600 font-semibold' : 'text-gray-700'}>
-                                                    {p.paid ? 'Pagada' : 'Pendiente'}
-                                                  </span>
-                                                </label>
-                                              </td>
-                                              <td className="py-2 pr-4 text-gray-900 font-semibold">$ {p.amount.toLocaleString()}</td>
-                                              <td className="py-2 pr-4 text-gray-600 text-xs">{p.paid_at ? new Date(p.paid_at).toLocaleDateString('es-PE') : '-'}</td>
-                                              <td className="py-2 pr-4 text-gray-600 text-xs">{p.note || '-'}</td>
-                                              <td className="py-2 pr-4 text-right">
-                                                <button
-                                                  onClick={() => deleteInstallmentPayment(order, p.id)}
-                                                  className="text-red-500 hover:text-red-700 p-1"
-                                                  title="Eliminar cuota"
-                                                >
-                                                  <Trash2 className="h-4 w-4" />
-                                                </button>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-
-                                    <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-3 space-y-3 sm:space-y-0">
-                                      <div className="flex-1 space-y-1">
-                                        <label className="text-sm font-medium text-gray-700">Agregar cuota</label>
-                                        <input
-                                          type="text"
-                                          inputMode="decimal"
-                                          pattern="[0-9]*[.,]?[0-9]*"
-                                          value={(installmentDrafts[order.id]?.amount) || ''}
-                                          onChange={(e) => {
-                                            const normalized = e.target.value.replace(/,/g, '.');
-                                            if (/^\d*(\.\d*)?$/.test(normalized)) {
-                                              setInstallmentDrafts(prev => ({ ...prev, [order.id]: { ...(prev[order.id] || { note: '' }), amount: normalized } }));
-                                            }
-                                          }}
-                                          placeholder="Monto"
-                                          className="w-full border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
-                                        />
-                                      </div>
-                                      <div className="flex-1 space-y-1">
-                                        <label className="text-sm font-medium text-gray-700">Nota (opcional)</label>
-                                        <input
-                                          type="text"
-                                          value={(installmentDrafts[order.id]?.note) || ''}
-                                          onChange={(e) => setInstallmentDrafts(prev => ({ ...prev, [order.id]: { ...(prev[order.id] || { amount: '' }), note: e.target.value } }))}
-                                          placeholder="Ej: Reprogramada a 15 días"
-                                          className="w-full border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
-                                        />
-                                      </div>
-                                      <button
-                                        onClick={() => addInstallmentPayment(order)}
-                                        className="sm:w-auto w-full inline-flex items-center justify-center px-4 py-2 bg-gold-500 hover:bg-gold-600 text-white rounded-md text-sm font-medium transition-colors duration-200"
-                                      >
-                                        Agregar cuota
-                                      </button>
-                                    </div>
-                                  </div>
+                                  <option value="Recibido">Recibido</option>
+                                  <option value="Confirmado">Confirmado</option>
+                                  <option value="En proceso">En proceso</option>
+                                  <option value="Entregado">Entregado</option>
+                                </select>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div className="flex items-center space-x-3">
+                                  <button
+                                    onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
+                                    className="text-gold-600 hover:text-gold-900 font-medium flex items-center"
+                                  >
+                                    {selectedOrder?.id === order.id ? (
+                                      <>
+                                        <ChevronUp className="h-4 w-4 mr-1" />
+                                        Ocultar
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-4 w-4 mr-1" />
+                                        Ver
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => deleteOrder(order)}
+                                    className="text-red-600 hover:text-red-900 font-medium flex items-center"
+                                    title="Eliminar pedido"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
                                 </div>
                               </td>
                             </tr>
-                          )}
-                        </React.Fragment>
+                            {selectedOrder?.id === order.id && (
+                              <tr>
+                                <td colSpan={6} className="px-6 py-4 bg-cream-50 border-b border-gray-200">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                      <h4 className="font-bold text-gray-900 mb-2">Información del Cliente</h4>
+                                      <div className="text-sm text-gray-600 space-y-1">
+                                        <p><span className="font-medium">DNI:</span> {order.customer_dni}</p>
+                                        <p><span className="font-medium">Teléfono:</span> {order.customer_phone}</p>
+                                        <p><span className="font-medium">Dirección:</span> {order.shipping_address}</p>
+                                        <p><span className="font-medium">Método de Pago:</span> {order.payment_method}</p>
+                                        {order.installments && order.installments > 1 && (
+                                          <p><span className="font-medium">Cuotas:</span> {order.installments}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-bold text-gray-900 mb-2">Productos ({order.items.length})</h4>
+                                      <div className="space-y-2">
+                                        {order.items.map((item, idx) => (
+                                          <div key={idx} className="flex items-center space-x-3 text-sm bg-white p-2 rounded border border-gray-200">
+                                            <img
+                                              src={item.product.mainImage}
+                                              alt={item.product.name}
+                                              className="w-10 h-10 object-cover rounded"
+                                            />
+                                            <div className="flex-1">
+                                              <p className="font-medium text-gray-900">{item.product.name}</p>
+                                              <p className="text-gray-500">Cant: {item.quantity} x $ {item.product.price}</p>
+                                              {item.selectedSize && <p className="text-xs text-gray-400">Talla: {item.selectedSize}</p>}
+                                            </div>
+                                            <div className="flex flex-col items-end space-y-1">
+                                              <p className="font-bold text-gray-900">
+                                                $ {(item.quantity * item.product.price).toLocaleString()}
+                                              </p>
+                                              <button
+                                                onClick={() => deleteOrderItem(order, idx)}
+                                                className="text-red-500 hover:text-red-700 p-1"
+                                                title="Eliminar producto del pedido"
+                                              >
+                                                <Trash2 className="h-4 w-4" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div className="md:col-span-2 bg-white rounded border border-beige-200 p-4">
+                                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                                        <div className="space-y-1">
+                                          <h4 className="font-bold text-gray-900">Plan de Cuotas</h4>
+                                          <p className="text-sm text-gray-600">Plan: {planned} | Registradas: {payments.length}</p>
+                                          <p className="text-sm text-gray-600">Pagado: $ {paidAmount.toLocaleString()} | Restante: $ {remaining.toLocaleString()}</p>
+                                        </div>
+                                        {exceeded && (
+                                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">Cuotas excedidas</span>
+                                        )}
+                                      </div>
+
+                                      <div className="overflow-x-auto mb-4">
+                                        <table className="min-w-full text-sm">
+                                          <thead>
+                                            <tr className="text-left text-gray-500">
+                                              <th className="py-2 pr-4">Estado</th>
+                                              <th className="py-2 pr-4">Monto</th>
+                                              <th className="py-2 pr-4">Fecha pago</th>
+                                              <th className="py-2 pr-4">Nota</th>
+                                              <th className="py-2 pr-4">Acciones</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-beige-200">
+                                            {payments.length === 0 ? (
+                                              <tr>
+                                                <td colSpan={5} className="py-3 text-gray-500">Aún no hay cuotas registradas.</td>
+                                              </tr>
+                                            ) : payments.map((p) => (
+                                              <tr key={p.id}>
+                                                <td className="py-2 pr-4">
+                                                  <label className="inline-flex items-center space-x-2 cursor-pointer">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={p.paid}
+                                                      onChange={() => toggleInstallmentPaid(order, p.id)}
+                                                      className="rounded text-gold-600 focus:ring-gold-500"
+                                                    />
+                                                    <span className={p.paid ? 'text-green-600 font-semibold' : 'text-gray-700'}>
+                                                      {p.paid ? 'Pagada' : 'Pendiente'}
+                                                    </span>
+                                                  </label>
+                                                </td>
+                                                <td className="py-2 pr-4 text-gray-900 font-semibold">$ {p.amount.toLocaleString()}</td>
+                                                <td className="py-2 pr-4 text-gray-600 text-xs">{p.paid_at ? new Date(p.paid_at).toLocaleDateString('es-PE') : '-'}</td>
+                                                <td className="py-2 pr-4 text-gray-600 text-xs">{p.note || '-'}</td>
+                                                <td className="py-2 pr-4 text-right">
+                                                  <button
+                                                    onClick={() => deleteInstallmentPayment(order, p.id)}
+                                                    className="text-red-500 hover:text-red-700 p-1"
+                                                    title="Eliminar cuota"
+                                                  >
+                                                    <Trash2 className="h-4 w-4" />
+                                                  </button>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+
+                                      <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-3 space-y-3 sm:space-y-0">
+                                        <div className="flex-1 space-y-1">
+                                          <label className="text-sm font-medium text-gray-700">Agregar cuota</label>
+                                          <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            pattern="[0-9]*[.,]?[0-9]*"
+                                            value={(installmentDrafts[order.id]?.amount) || ''}
+                                            onChange={(e) => {
+                                              const normalized = e.target.value.replace(/,/g, '.');
+                                              if (/^\d*(\.\d*)?$/.test(normalized)) {
+                                                setInstallmentDrafts(prev => ({ ...prev, [order.id]: { ...(prev[order.id] || { note: '' }), amount: normalized } }));
+                                              }
+                                            }}
+                                            placeholder="Monto"
+                                            className="w-full border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                                          />
+                                        </div>
+                                        <div className="flex-1 space-y-1">
+                                          <label className="text-sm font-medium text-gray-700">Nota (opcional)</label>
+                                          <input
+                                            type="text"
+                                            value={(installmentDrafts[order.id]?.note) || ''}
+                                            onChange={(e) => setInstallmentDrafts(prev => ({ ...prev, [order.id]: { ...(prev[order.id] || { amount: '' }), note: e.target.value } }))}
+                                            placeholder="Ej: Reprogramada a 15 días"
+                                            className="w-full border-gray-300 rounded-md text-sm focus:ring-gold-500 focus:border-gold-500"
+                                          />
+                                        </div>
+                                        <button
+                                          onClick={() => addInstallmentPayment(order)}
+                                          className="sm:w-auto w-full inline-flex items-center justify-center px-4 py-2 bg-gold-500 hover:bg-gold-600 text-white rounded-md text-sm font-medium transition-colors duration-200"
+                                        >
+                                          Agregar cuota
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </tbody>
@@ -2300,13 +2368,13 @@ const Admin: React.FC = () => {
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
-              <DndContext 
-                sensors={sensors} 
-                collisionDetection={closestCenter} 
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
               >
-                <SortableContext 
-                  items={orderedProducts.map(p => p.id)} 
+                <SortableContext
+                  items={orderedProducts.map(p => p.id)}
                   strategy={rectSortingStrategy}
                 >
                   <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
@@ -2326,7 +2394,7 @@ const Admin: React.FC = () => {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-beige-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[ 
+                {[
                   { label: 'Pedidos', value: totalOrders.toLocaleString() },
                   { label: 'Ingresos totales', value: `$ ${totalRevenue.toLocaleString()}` },
                   { label: 'Piezas vendidas', value: totalItemsSold.toLocaleString() },
@@ -2597,7 +2665,7 @@ const Admin: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

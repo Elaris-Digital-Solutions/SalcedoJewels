@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, Share2, ShoppingBag, Truck, Shield, CreditCard, CheckCircle, XCircle, Plus, Minus } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,8 +48,8 @@ const ProductDetail: React.FC = () => {
   const hasVariants = product.variants && product.variants.length > 0;
 
   // Determine current stock and price based on selection
-  const selectedVariant = hasVariants && selectedSize 
-    ? product.variants?.find(v => v.size === selectedSize) 
+  const selectedVariant = hasVariants && selectedSize
+    ? product.variants?.find(v => v.size === selectedSize)
     : null;
 
   const currentStock = hasVariants
@@ -59,7 +60,7 @@ const ProductDetail: React.FC = () => {
     ? selectedVariant.price
     : product.price;
 
-  const isOutOfStock = hasVariants 
+  const isOutOfStock = hasVariants
     ? (selectedSize ? currentStock === 0 : false) // If variant selected, check its stock. If not, wait for selection.
     : currentStock === 0;
 
@@ -112,7 +113,7 @@ const ProductDetail: React.FC = () => {
             {/* Main Image */}
             <div className="aspect-square bg-cream-50 rounded-lg overflow-hidden border border-beige-200">
               <img
-                src={allImages[selectedImage]}
+                src={getOptimizedImageUrl(allImages[selectedImage], 1200, product.brightness, product.contrast)}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -125,14 +126,13 @@ const ProductDetail: React.FC = () => {
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`aspect-square rounded-md overflow-hidden border-2 transition-all duration-200 ${
-                      selectedImage === index
+                    className={`aspect-square rounded-md overflow-hidden border-2 transition-all duration-200 ${selectedImage === index
                         ? 'border-gold-500 ring-2 ring-gold-200'
                         : 'border-beige-200 hover:border-gold-300'
-                    }`}
+                      }`}
                   >
                     <img
-                      src={image}
+                      src={getOptimizedImageUrl(image, 200, product.brightness, product.contrast)}
                       alt={`${product.name} - Vista ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -159,17 +159,16 @@ const ProductDetail: React.FC = () => {
                   </span>
                 </div>
                 {/* Stock Status */}
-                <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border ${
-                  !isOutOfStock && (!hasVariants || selectedSize)
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+                <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border ${!isOutOfStock && (!hasVariants || selectedSize)
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                     : 'bg-red-50 border-red-200 text-red-700'
-                }`}>
+                  }`}>
                   {!isOutOfStock && (!hasVariants || selectedSize) ? (
                     <>
                       <CheckCircle className="h-4 w-4" />
                       <span className="font-inter text-sm font-medium">
-                        {hasVariants && selectedSize 
-                          ? `Disponible (${currentStock} unid.)` 
+                        {hasVariants && selectedSize
+                          ? `Disponible (${currentStock} unid.)`
                           : 'Disponible'}
                       </span>
                     </>
@@ -207,13 +206,12 @@ const ProductDetail: React.FC = () => {
                       key={variant.size}
                       onClick={() => setSelectedSize(variant.size)}
                       disabled={variant.stock === 0}
-                      className={`px-4 py-2 rounded-md border text-sm font-medium transition-all duration-200 ${
-                        selectedSize === variant.size
+                      className={`px-4 py-2 rounded-md border text-sm font-medium transition-all duration-200 ${selectedSize === variant.size
                           ? 'border-gold-500 bg-gold-50 text-gold-700 ring-1 ring-gold-500'
                           : variant.stock === 0
                             ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed decoration-slice'
                             : 'border-gray-300 hover:border-gold-300 text-gray-700 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       {variant.size}
                     </button>
@@ -247,9 +245,8 @@ const ProductDetail: React.FC = () => {
                       <button
                         onClick={() => handleUpdateCartQuantity(cartQuantity + 1)}
                         disabled={cartQuantity >= currentStock}
-                        className={`p-2 bg-white border border-beige-300 rounded-md transition-colors duration-200 ${
-                          cartQuantity >= currentStock ? 'opacity-50 cursor-not-allowed' : 'hover:bg-beige-50'
-                        }`}
+                        className={`p-2 bg-white border border-beige-300 rounded-md transition-colors duration-200 ${cartQuantity >= currentStock ? 'opacity-50 cursor-not-allowed' : 'hover:bg-beige-50'
+                          }`}
                       >
                         <Plus className="h-4 w-4 text-gray-600" />
                       </button>
@@ -294,36 +291,34 @@ const ProductDetail: React.FC = () => {
                 <button
                   onClick={handleAddToCart}
                   disabled={!canAddToCart}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${
-                    canAddToCart
+                  className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${canAddToCart
                       ? 'bg-gold-500 hover:bg-gold-600 text-white hover:shadow-lg'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   <ShoppingBag className="h-5 w-5" />
                   <span>
                     {hasVariants && !selectedSize
                       ? 'Selecciona una talla'
-                      : !canAddToCart 
+                      : !canAddToCart
                         ? (currentStock > 0 && cartQuantity >= currentStock ? 'Máximo alcanzado' : 'Agotado')
-                        : cartQuantity > 0 
-                          ? 'Agregar Más' 
+                        : cartQuantity > 0
+                          ? 'Agregar Más'
                           : 'Agregar al Carrito'
                     }
                   </span>
                 </button>
-                
+
                 <button
                   onClick={() => setIsFavorite(!isFavorite)}
-                  className={`p-3 rounded-md border transition-all duration-200 ${
-                    isFavorite
+                  className={`p-3 rounded-md border transition-all duration-200 ${isFavorite
                       ? 'border-red-300 bg-red-50 text-red-600'
                       : 'border-beige-300 hover:border-gold-300 hover:bg-cream-50 text-gray-600'
-                  }`}
+                    }`}
                 >
                   <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
                 </button>
-                
+
                 <button className="p-3 rounded-md border border-beige-300 hover:border-gold-300 hover:bg-cream-50 text-gray-600 transition-all duration-200">
                   <Share2 className="h-5 w-5" />
                 </button>
@@ -347,8 +342,8 @@ const ProductDetail: React.FC = () => {
                   <span className="font-inter text-sm text-gray-600">
                     Envío seguro y asegurado
                   </span>
-                
-                
+
+
                 </div>
                 <div className="flex items-center space-x-3">
                   <CreditCard className="h-5 w-5 text-gold-500" />

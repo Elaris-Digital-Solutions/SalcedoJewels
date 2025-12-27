@@ -30,6 +30,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         .from('products')
         .select(`
           *,
+          brightness,
+          contrast,
           product_images (
             public_id,
             secure_url,
@@ -39,9 +41,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
           )
         `)
         .order('sort_order', { ascending: true });
-      
+
       if (error) throw error;
-      
+
       if (data) {
         const mappedProducts: Product[] = data.map((item: any) => {
           const relatedImages: any[] = Array.isArray(item.product_images) ? item.product_images : [];
@@ -78,7 +80,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
             inStock: item.in_stock,
             stock: item.stock,
             variants: item.variants,
-            sortOrder: item.sort_order
+            sortOrder: item.sort_order,
+            brightness: item.brightness,
+            contrast: item.contrast
           };
         });
         setProducts(mappedProducts);
@@ -102,7 +106,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         featured: product.featured,
         in_stock: product.inStock,
         stock: product.stock,
-        variants: product.variants
+        variants: product.variants,
+        brightness: product.brightness,
+        contrast: product.contrast
       };
 
       const { data, error } = await supabase
@@ -143,21 +149,32 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (updatedProduct.stock !== undefined) dbUpdate.stock = updatedProduct.stock;
       if (updatedProduct.variants) dbUpdate.variants = updatedProduct.variants;
       if (updatedProduct.sortOrder !== undefined) dbUpdate.sort_order = updatedProduct.sortOrder;
+      if (updatedProduct.brightness !== undefined) dbUpdate.brightness = updatedProduct.brightness;
+      if (updatedProduct.contrast !== undefined) dbUpdate.contrast = updatedProduct.contrast;
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .update(dbUpdate)
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) throw error;
 
-      setProducts(prev => 
-        prev.map(product => 
-          product.id === id ? { ...product, ...updatedProduct } : product
+      const saved = data?.[0];
+      setProducts(prev =>
+        prev.map(product =>
+          product.id === id ? {
+            ...product,
+            ...updatedProduct,
+            // Ensure we use the values actually saved in DB if available
+            brightness: saved?.brightness ?? updatedProduct.brightness,
+            contrast: saved?.contrast ?? updatedProduct.contrast
+          } : product
         )
       );
     } catch (error) {
       console.error('Error updating product:', error);
+      throw error;
     }
   };
 
@@ -172,7 +189,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       // For now, we'll loop through. If there are many products, this might be slow.
       // A better way is to use a stored procedure or a single upsert call.
       // But given the constraints, we'll iterate.
-      
+
       const updates = orderedProducts.map((product, index) => ({
         id: product.id,
         sort_order: index
@@ -184,7 +201,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       // No, upsert replaces the row or inserts. It might clear other fields if not provided.
       // So we should use `update` in a loop or a custom RPC.
       // Let's try a loop for now, assuming not too many products.
-      
+
       for (const update of updates) {
         await supabase
           .from('products')
@@ -228,11 +245,11 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       // 3. Actualizar estado local
       setProducts(prev => prev.filter(product => product.id !== id));
-      
+
       // Nota: Las imágenes permanecen en Cloudinary. 
       // Para borrarlas también, se requeriría una función de servidor (Edge Function o Backend)
       // que tenga las credenciales de administración de Cloudinary.
-      
+
     } catch (error) {
       console.error('Error deleting product:', error);
       alert('No se pudo eliminar el producto. Verifica que tengas permisos de administrador.');
@@ -244,12 +261,12 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const getFeaturedProducts = () => {
-    return products.filter(product => product.featured && product.stock > 0);
+    return products.filter(product => product.featured && (product.stock || 0) > 0);
   };
 
   const getMostExpensiveProducts = (limit: number = 3) => {
     return [...products]
-      .filter(product => product.stock > 0)
+      .filter(product => (product.stock || 0) > 0)
       .sort((a, b) => {
         const priceDiff = b.price - a.price;
         if (priceDiff !== 0) return priceDiff;
@@ -261,6 +278,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
   return (
     <ProductContext.Provider value={{
       products,
+      loading,
       addProduct,
       updateProduct,
       updateProductOrder,

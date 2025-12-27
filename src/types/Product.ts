@@ -13,6 +13,8 @@ export interface Product {
   mainImage: string;
   additionalImages: string[];
   featured?: boolean;
+  brightness?: number; // 0-200%
+  contrast?: number;   // 0-200%
   inStock?: boolean;
   stock?: number;
   variants?: ProductVariant[];
