@@ -8,11 +8,13 @@ import { getOptimizedImageUrl } from '../utils/imageUtils';
 interface ProductCardProps {
   product: Product;
   priority?: boolean;
+  compact?: boolean;
+  imageWidth?: number;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false, compact = false, imageWidth = 700 }) => {
   const { isInCart } = useCart();
-  const optimizedImage = getOptimizedImageUrl(product.mainImage, 500);
+  const optimizedImage = getOptimizedImageUrl(product.mainImage, imageWidth);
 
   return (
     <div className="group bg-white rounded-lg overflow-hidden shadow-sm border border-beige-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -21,7 +23,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false }) 
           src={optimizedImage}
           alt={product.name}
           loading={priority ? "eager" : "lazy"}
-          {...(priority ? { fetchPriority: "high" } : {})}
+          {...(priority ? { fetchpriority: "high" } : {})}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
@@ -55,8 +57,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false }) 
           </div>
         )}
       </div>
-      
-      <div className="p-6">
+
+      <div className={compact ? "p-3 md:p-6" : "p-6"}>
         <div className="mb-2">
           <span className="text-xs font-medium text-gold-600 uppercase tracking-wide">
             {product.category}

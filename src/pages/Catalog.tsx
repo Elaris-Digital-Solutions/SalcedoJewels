@@ -11,7 +11,7 @@ import ProductCard from '../components/ProductCard';
 const Catalog: React.FC = () => {
   const { products } = useProducts();
   const catalogRef = useScrollPosition();
-  
+
   // Filter out products with 0 stock
   const sortedProducts = products.filter(product => (product.stock || 0) > 0);
 
@@ -33,7 +33,14 @@ const Catalog: React.FC = () => {
             <p className="font-inter text-lg md:text-xl text-cream-50 mb-6">
               Explora anillos, aretes, collares y pulseras con elegancia atemporal, seleccionados para destacar.
             </p>
-            <a href="#catalogo-grid" className="inline-flex items-center px-5 py-3 bg-white text-gold-700 rounded-md font-medium shadow hover:shadow-lg transition-all duration-200">
+            <a
+              href="#catalogo-grid"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('catalogo-grid')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center px-5 py-3 bg-white text-gold-700 rounded-md font-medium shadow hover:shadow-lg transition-all duration-200"
+            >
               Ver piezas disponibles
             </a>
           </div>
@@ -43,10 +50,10 @@ const Catalog: React.FC = () => {
       <div id="catalogo-grid" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Products Grid */}
         {sortedProducts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {sortedProducts.map((product, index) => (
               <div key={product.id} className="animate-fade-in">
-                <ProductCard product={product} priority={index < 6} />
+                <ProductCard product={product} priority={index < 6} compact={true} />
               </div>
             ))}
           </div>

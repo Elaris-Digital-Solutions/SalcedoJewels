@@ -25,11 +25,12 @@ const Home: React.FC = () => {
               Jewels
             </p>
             <p className="font-inter text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Descubre la elegancia atemporal en cada pieza de nuestra exclusiva colección 
+              Descubre la elegancia atemporal en cada pieza de nuestra exclusiva colección
               de joyería en oro italiano de 18k
             </p>
             <Link
               to="/catalog"
+              onClick={() => window.scrollTo(0, 0)}
               className="inline-flex items-center space-x-2 bg-gold-500 hover:bg-gold-600 text-white px-8 py-4 rounded-md font-medium text-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-float"
             >
               <span>Ver Catálogo</span>
@@ -50,7 +51,7 @@ const Home: React.FC = () => {
               Compromiso con la excelencia en cada detalle
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center group">
               <div className="bg-cream-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6 group-hover:bg-cream-200 transition-colors duration-300">
@@ -60,11 +61,11 @@ const Home: React.FC = () => {
                 Oro Italiano 18k
               </h3>
               <p className="font-inter text-gray-600 leading-relaxed">
-                Utilizamos únicamente oro italiano de la más alta calidad para garantizar 
+                Utilizamos únicamente oro italiano de la más alta calidad para garantizar
                 durabilidad y brillo excepcional en cada pieza.
               </p>
             </div>
-            
+
             <div className="text-center group">
               <div className="bg-cream-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6 group-hover:bg-cream-200 transition-colors duration-300">
                 <Star className="h-8 w-8 text-gold-600" />
@@ -73,11 +74,11 @@ const Home: React.FC = () => {
                 Diseño Exclusivo
               </h3>
               <p className="font-inter text-gray-600 leading-relaxed">
-                Cada pieza es cuidadosamente seleccionada para reflejar elegancia y 
+                Cada pieza es cuidadosamente seleccionada para reflejar elegancia y
                 sofisticación, ofreciendo joyas verdaderamente especiales.
               </p>
             </div>
-            
+
             <div className="text-center group">
               <div className="bg-cream-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6 group-hover:bg-cream-200 transition-colors duration-300">
                 <Shield className="h-8 w-8 text-gold-600" />
@@ -86,7 +87,7 @@ const Home: React.FC = () => {
                 Garantía de Calidad
               </h3>
               <p className="font-inter text-gray-600 leading-relaxed">
-                Ofrecemos garantía completa en todas nuestras piezas y servicio 
+                Ofrecemos garantía completa en todas nuestras piezas y servicio
                 al cliente personalizado para tu tranquilidad.
               </p>
             </div>
@@ -105,18 +106,19 @@ const Home: React.FC = () => {
               Descubre nuestras joyas más exclusivas y de mayor valor
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {featuredProducts.map((product, index) => (
               <div key={product.id} className="animate-slide-up">
-                <ProductCard product={product} priority={index < 3} />
+                <ProductCard product={product} priority={index < 3} imageWidth={1000} />
               </div>
             ))}
           </div>
-          
+
           <div className="text-center">
             <Link
               to="/catalog"
+              onClick={() => window.scrollTo(0, 0)}
               className="inline-flex items-center space-x-2 border border-gold-500 text-gold-600 hover:bg-gold-500 hover:text-white px-8 py-3 rounded-md font-medium transition-all duration-300 hover:shadow-md"
             >
               <span>Ver Todo el Catálogo</span>
