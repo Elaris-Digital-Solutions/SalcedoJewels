@@ -77,9 +77,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false, co
           <div className="flex space-x-2">
             <Link
               to={`/product/${product.id}`}
-              className="bg-gold-500 hover:bg-gold-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+              className="bg-gold-500 hover:bg-gold-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap"
             >
-              Ver Detalles
+              <span className="hidden sm:inline">Ver </span>Detalles
             </Link>
           </div>
         </div>
