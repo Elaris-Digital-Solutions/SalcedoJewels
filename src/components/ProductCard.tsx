@@ -17,7 +17,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false, co
   const optimizedImage = getOptimizedImageUrl(product.mainImage, imageWidth, product.brightness, product.contrast);
 
   return (
-    <div className="group bg-white rounded-lg overflow-hidden shadow-sm border border-beige-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+    <div className="group bg-white rounded-lg overflow-hidden shadow-sm border border-beige-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
       <div className="relative aspect-square overflow-hidden">
         <img
           src={optimizedImage}
@@ -58,19 +58,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false, co
         )}
       </div>
 
-      <div className={compact ? "p-3 md:p-6" : "p-6"}>
+      <div className={`${compact ? "p-3 md:p-6" : "p-6"} flex-grow flex flex-col`}>
         <div className="mb-2">
           <span className="text-xs font-medium text-gold-600 uppercase tracking-wide">
             {product.category}
           </span>
         </div>
-        <h3 className="font-playfair text-lg font-semibold text-gray-900 mb-2 group-hover:text-gold-700 transition-colors duration-200">
+        <h3 className="product-card-title font-playfair text-lg font-semibold text-gray-900 mb-2 group-hover:text-gold-700 transition-colors duration-200">
           {product.name}
         </h3>
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2 h-10 overflow-hidden">
           {product.description}
         </p>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-auto">
           <span className="font-playfair text-xl font-bold text-gold-600">
             ${product.price.toLocaleString()}
           </span>

@@ -15,6 +15,9 @@ const Catalog: React.FC = () => {
   // Filter out products with 0 stock
   const sortedProducts = products.filter(product => (product.stock || 0) > 0);
 
+  // Enable dynamic row alignment for product titles
+  useProductAlignment(sortedProducts);
+
 
   return (
     <div ref={catalogRef} className="min-h-screen bg-cream-25 pt-24 pb-12">
@@ -52,7 +55,7 @@ const Catalog: React.FC = () => {
         {sortedProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {sortedProducts.map((product, index) => (
-              <div key={product.id} className="animate-fade-in">
+              <div key={product.id} className="animate-fade-in product-card-wrapper h-full">
                 <ProductCard product={product} priority={index < 6} compact={true} />
               </div>
             ))}
@@ -75,6 +78,57 @@ const Catalog: React.FC = () => {
       </div>
     </div>
   );
+};
+
+// Add this at the end of the file or inside the component
+import { useEffect } from 'react';
+
+const useProductAlignment = (products: any[]) => {
+  useEffect(() => {
+    const alignTitles = () => {
+      const titles = document.querySelectorAll('.product-card-title');
+      if (!titles.length) return;
+
+      // Reset heights to auto to get natural height
+      titles.forEach((el) => {
+        (el as HTMLElement).style.height = 'auto';
+      });
+
+      // Group by row
+      const rows: Map<number, HTMLElement[]> = new Map();
+
+      titles.forEach((el) => {
+        const top = (el as HTMLElement).offsetTop;
+        if (!rows.has(top)) {
+          rows.set(top, []);
+        }
+        rows.get(top)?.push(el as HTMLElement);
+      });
+
+      // Apply max height per row
+      rows.forEach((elements) => {
+        let maxHeight = 0;
+        elements.forEach((el) => {
+          maxHeight = Math.max(maxHeight, el.offsetHeight);
+        });
+
+        elements.forEach((el) => {
+          el.style.height = `${maxHeight}px`;
+        });
+      });
+    };
+
+    // Run on mount, product change, and window resize
+    alignTitles();
+    window.addEventListener('resize', alignTitles);
+
+    const timeout = setTimeout(alignTitles, 100);
+
+    return () => {
+      window.removeEventListener('resize', alignTitles);
+      clearTimeout(timeout);
+    };
+  }, [products]);
 };
 
 export default Catalog;
