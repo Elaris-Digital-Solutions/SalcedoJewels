@@ -15,6 +15,7 @@ export interface Product {
   featured?: boolean;
   brightness?: number; // 0-200%
   contrast?: number;   // 0-200%
+  imageSettings?: Record<string, { brightness: number; contrast: number }>;
   inStock?: boolean;
   stock?: number;
   variants?: ProductVariant[];

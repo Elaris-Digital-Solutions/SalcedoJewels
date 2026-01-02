@@ -8,7 +8,7 @@ import { Order, InstallmentPayment } from '../types/Order';
 import { supabase } from '../supabaseClient';
 import AdminLogin from '../components/AdminLogin';
 import { productDescriptions } from '../data/productDescriptions';
-import { getOptimizedImageUrl } from '../utils/imageUtils';
+import { getOptimizedImageUrl, getImageSettings } from '../utils/imageUtils';
 import {
   DndContext,
   closestCenter,
@@ -184,8 +184,13 @@ const Admin: React.FC = () => {
   const [productCategory, setProductCategory] = useState('Anillos');
   const [productDescription, setProductDescription] = useState(productDescriptions['Anillos'][0]);
   const [descriptionIndex, setDescriptionIndex] = useState(0);
-  const [productBrightness, setProductBrightness] = useState(100);
-  const [productContrast, setProductContrast] = useState(100);
+  // Global brightness/contrast state removed in favor of per-image settings
+  const [imageSettingsMap, setImageSettingsMap] = useState<Record<string, { brightness: number; contrast: number }>>({});
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+
+  const currentImageSettings = selectedImageId && imageSettingsMap[selectedImageId]
+    ? imageSettingsMap[selectedImageId]
+    : { brightness: 100, contrast: 100 };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -799,6 +804,15 @@ const Admin: React.FC = () => {
       }
       return merged;
     });
+
+    const newSettings = { ...imageSettingsMap };
+    next.forEach(img => {
+      newSettings[img.previewUrl] = { brightness: 100, contrast: 100 };
+    });
+    setImageSettingsMap(newSettings);
+    if (next.length > 0 && !selectedImageId) {
+      setSelectedImageId(next[0].previewUrl);
+    }
   };
 
   const handleUploadProduct = async () => {
@@ -835,8 +849,10 @@ const Admin: React.FC = () => {
         inStock: totalStock > 0,
         stock: totalStock,
         variants: hasVariants ? variants : undefined,
-        brightness: productBrightness,
-        contrast: productContrast
+
+        brightness: 100, // Legacy/Default
+        contrast: 100,
+        imageSettings: {} // Will be populated after upload
       };
 
       const created = await addProduct(newProduct);
@@ -888,9 +904,19 @@ const Admin: React.FC = () => {
       const urls = uploaded.map(u => u.secure_url);
 
       // 3) Actualizar producto con URLs reales
+      // 3) Actualizar producto con URLs reales
       await updateProduct(created.id, {
         mainImage: urls[0] || placeholderImage,
-        additionalImages: urls.slice(1)
+        additionalImages: urls.slice(1),
+        imageSettings: (() => {
+          const map: Record<string, { brightness: number; contrast: number }> = {};
+          uploaded.forEach((u, i) => {
+            const original = orderedSelection[i];
+            const settings = imageSettingsMap[original.previewUrl] || { brightness: 100, contrast: 100 };
+            map[u.secure_url] = settings;
+          });
+          return map;
+        })()
       });
 
       // 4) Insertar relación en product_images
@@ -932,8 +958,8 @@ const Admin: React.FC = () => {
       setHasVariants(false);
       setStock(1);
       setVariants([]);
-      setProductBrightness(100);
-      setProductContrast(100);
+      setImageSettingsMap({});
+      setSelectedImageId(null);
       alert('Producto agregado exitosamente');
     } catch (error) {
       console.error('Error creating product:', error);
@@ -960,6 +986,14 @@ const Admin: React.FC = () => {
         id: `new-${Date.now()}-${Math.random()}`
       }));
     setEditingImages(prev => [...prev, ...newImages]);
+    const newSettings = { ...imageSettingsMap };
+    newImages.forEach(img => {
+      newSettings[img.url] = { brightness: 100, contrast: 100 };
+    });
+    setImageSettingsMap(newSettings);
+    if (newImages.length > 0 && !selectedImageId) {
+      setSelectedImageId(newImages[0].url);
+    }
   };
 
   const removeEditImage = (index: number) => {
@@ -1026,9 +1060,32 @@ const Admin: React.FC = () => {
         additionalImages: finalUrls.slice(1)
       };
 
-      await updateProduct(editingProduct.id, productToSave);
+      const finalSettings = { ...imageSettingsMap };
+      // Update mappings for newly uploaded images
+      for (let i = 0; i < finalUrls.length; i++) {
+        // Find which editing image this corresponds to
+        // If it was a file, we look up by the blob url we used as key
+        // But here we just need to ensure the new URL has the settings of the old blob URL
+        // finalUrls contains ALL urls (existing and new) in order?
+        // Wait, finalUrls code block pushes either img.url (existing) or json.secure_url (new)
+        const oldImg = editingImages[i];
+        if (oldImg.type === 'file') {
+          const settings = imageSettingsMap[oldImg.url];
+          if (settings) {
+            finalSettings[finalUrls[i]] = settings;
+            // convert blob setting to url setting
+          }
+        }
+      }
+
+      await updateProduct(editingProduct.id, {
+        ...productToSave,
+        imageSettings: finalSettings
+      });
       setEditingProduct(null);
       setEditingImages([]);
+      setImageSettingsMap({});
+      setSelectedImageId(null);
     } catch (error) {
       console.error('Error saving edit:', error);
       alert('Error al guardar cambios');
@@ -1155,69 +1212,97 @@ const Admin: React.FC = () => {
                   Imágenes seleccionadas ({selectedImages.length})
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {selectedImages.map((img, index) => (
-                    <div key={`${img.filename}-${img.file.size}-${img.file.lastModified}-${index}`} className="border border-beige-200 rounded-lg overflow-hidden bg-white">
-                      <div className="aspect-square overflow-hidden bg-gray-50">
-                        <img src={img.previewUrl} alt={img.filename} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="p-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setMainUploadIndex(index)}
-                            className={
-                              "text-xs px-2 py-1 rounded-full border transition-colors " +
-                              (index === mainUploadIndex
-                                ? 'bg-cream-200 text-gold-800 border-beige-300'
-                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50')
-                            }
-                          >
-                            {index === mainUploadIndex ? 'Principal' : 'Hacer principal'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeUploadedImage(index)}
-                            className="text-red-600 hover:text-red-800"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                  {selectedImages.map((img, index) => {
+                    const isSelected = selectedImageId === img.previewUrl;
+                    const settings = imageSettingsMap[img.previewUrl] || { brightness: 100, contrast: 100 };
+                    return (
+                      <div
+                        key={`${img.filename}-${img.file.size}-${img.file.lastModified}-${index}`}
+                        className={`border rounded-lg overflow-hidden bg-white cursor-pointer transition-all ${isSelected ? 'border-gold-500 ring-2 ring-gold-200' : 'border-beige-200'}`}
+                        onClick={() => setSelectedImageId(img.previewUrl)}
+                      >
+                        <div className="aspect-square overflow-hidden bg-gray-50">
+                          <img
+                            src={img.previewUrl}
+                            alt={img.filename}
+                            className="w-full h-full object-cover transition-all duration-200"
+                            style={{ filter: `brightness(${settings.brightness}%) contrast(${settings.contrast}%)` }}
+                          />
                         </div>
-                        <p className="mt-2 text-[11px] text-gray-500 truncate" title={img.filename}>
-                          {img.filename}
-                        </p>
+                        <div className="p-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setMainUploadIndex(index); }}
+                              className={
+                                "text-xs px-2 py-1 rounded-full border transition-colors " +
+                                (index === mainUploadIndex
+                                  ? 'bg-cream-200 text-gold-800 border-beige-300'
+                                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50')
+                              }
+                            >
+                              {index === mainUploadIndex ? 'Principal' : 'Hacer principal'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); removeUploadedImage(index); }}
+                              className="text-red-600 hover:text-red-800"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <p className="mt-2 text-[11px] text-gray-500 truncate" title={img.filename}>
+                            {img.filename}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-beige-200 mt-4">
+
                   <div>
                     <div className="flex justify-between mb-1">
-                      <label className="text-xs font-medium text-gray-700">Brillo</label>
-                      <span className="text-xs text-gray-500">{productBrightness}%</span>
+                      <label className="text-xs font-medium text-gray-700">Brillo {selectedImageId ? '(Imagen seleccionada)' : '(Selecciona una imagen)'}</label>
+                      <span className="text-xs text-gray-500">{currentImageSettings.brightness}%</span>
                     </div>
                     <input
                       type="range"
                       min="50"
                       max="150"
-                      value={productBrightness}
-                      onChange={(e) => setProductBrightness(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600"
+                      value={currentImageSettings.brightness}
+                      onChange={(e) => {
+                        if (!selectedImageId) return;
+                        setImageSettingsMap(prev => ({
+                          ...prev,
+                          [selectedImageId]: { ...prev[selectedImageId], brightness: Number(e.target.value) }
+                        }));
+                      }}
+                      disabled={!selectedImageId}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
                     <div className="flex justify-between mb-1">
-                      <label className="text-xs font-medium text-gray-700">Contraste</label>
-                      <span className="text-xs text-gray-500">{productContrast}%</span>
+                      <label className="text-xs font-medium text-gray-700">Contraste {selectedImageId ? '(Imagen seleccionada)' : '(Selecciona una imagen)'}</label>
+                      <span className="text-xs text-gray-500">{currentImageSettings.contrast}%</span>
                     </div>
                     <input
                       type="range"
                       min="50"
                       max="150"
-                      value={productContrast}
-                      onChange={(e) => setProductContrast(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600"
+                      value={currentImageSettings.contrast}
+                      onChange={(e) => {
+                        if (!selectedImageId) return;
+                        setImageSettingsMap(prev => ({
+                          ...prev,
+                          [selectedImageId]: { ...prev[selectedImageId], contrast: Number(e.target.value) }
+                        }));
+                      }}
+                      disabled={!selectedImageId}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1489,7 +1574,10 @@ const Admin: React.FC = () => {
                   <div key={product.id} className="bg-white rounded-lg shadow-sm border border-beige-200 overflow-hidden">
                     <div className="aspect-square overflow-hidden">
                       <img
-                        src={getOptimizedImageUrl(product.mainImage, 400, product.brightness, product.contrast)}
+                        src={(() => {
+                          const { brightness, contrast } = getImageSettings(product.mainImage, product);
+                          return getOptimizedImageUrl(product.mainImage, 400, brightness, contrast);
+                        })()}
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />
@@ -1575,71 +1663,94 @@ const Admin: React.FC = () => {
                             {/* Images Grid */}
                             <div className="space-y-3">
                               <div className="grid grid-cols-3 gap-2">
-                                {editingImages.map((img, index) => (
-                                  <div key={img.id} className="border border-gray-200 rounded overflow-hidden bg-white relative group">
-                                    <div className="aspect-square bg-gray-50">
-                                      <img
-                                        src={img.url}
-                                        alt="Product"
-                                        className="w-full h-full object-cover"
-                                        style={{
-                                          filter: `brightness(${editingProduct.brightness ?? 100}%) contrast(${editingProduct.contrast ?? 100}%)`
-                                        }}
-                                      />
+                                {editingImages.map((img, index) => {
+                                  const isSelected = selectedImageId === img.url;
+                                  const settings = imageSettingsMap[img.url] || { brightness: 100, contrast: 100 };
+                                  return (
+                                    <div
+                                      key={img.id}
+                                      className={`border rounded overflow-hidden bg-white relative group cursor-pointer transition-all ${isSelected ? 'border-gold-500 ring-2 ring-gold-200' : 'border-gray-200'}`}
+                                      onClick={() => setSelectedImageId(img.url)}
+                                    >
+                                      <div className="aspect-square bg-gray-50">
+                                        <img
+                                          src={img.url}
+                                          alt="Product"
+                                          className="w-full h-full object-cover transition-all duration-200"
+                                          style={{
+                                            filter: `brightness(${settings.brightness}%) contrast(${settings.contrast}%)`
+                                          }}
+                                        />
+                                      </div>
+                                      <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 rounded-bl">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); removeEditImage(index); }}
+                                          className="text-red-600 hover:text-red-800"
+                                          title="Eliminar"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                      <div className="p-1 bg-white border-t border-gray-100">
+                                        <button
+                                          type="button"
+                                          onClick={() => setMainEditImage(index)}
+                                          className={`w-full text-[10px] py-1 rounded border ${index === 0
+                                            ? 'bg-gold-50 text-gold-800 border-gold-200 font-medium'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                          {index === 0 ? 'Principal' : 'Hacer Principal'}
+                                        </button>
+                                      </div>
                                     </div>
-                                    <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 rounded-bl">
-                                      <button
-                                        type="button"
-                                        onClick={() => removeEditImage(index)}
-                                        className="text-red-600 hover:text-red-800"
-                                        title="Eliminar"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                    <div className="p-1 bg-white border-t border-gray-100">
-                                      <button
-                                        type="button"
-                                        onClick={() => setMainEditImage(index)}
-                                        className={`w-full text-[10px] py-1 rounded border ${index === 0
-                                          ? 'bg-gold-50 text-gold-800 border-gold-200 font-medium'
-                                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                                          }`}
-                                      >
-                                        {index === 0 ? 'Principal' : 'Hacer Principal'}
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
 
                               <div className="grid grid-cols-1 gap-3 pt-2 border-t border-gray-100">
+
                                 <div>
                                   <div className="flex justify-between mb-1">
-                                    <label className="text-xs font-medium text-gray-700">Brillo</label>
-                                    <span className="text-[10px] text-gray-500">{editingProduct.brightness ?? 100}%</span>
+                                    <label className="text-xs font-medium text-gray-700">Brillo {selectedImageId ? '(Img. Seleccionada)' : ''}</label>
+                                    <span className="text-[10px] text-gray-500">{currentImageSettings.brightness}%</span>
                                   </div>
                                   <input
                                     type="range"
                                     min="50"
                                     max="150"
-                                    value={editingProduct.brightness ?? 100}
-                                    onChange={(e) => setEditingProduct({ ...editingProduct, brightness: Number(e.target.value) })}
-                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600"
+                                    value={currentImageSettings.brightness}
+                                    onChange={(e) => {
+                                      if (!selectedImageId) return;
+                                      setImageSettingsMap(prev => ({
+                                        ...prev,
+                                        [selectedImageId]: { ...prev[selectedImageId], brightness: Number(e.target.value) }
+                                      }));
+                                    }}
+                                    disabled={!selectedImageId}
+                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600 disabled:opacity-50"
                                   />
                                 </div>
                                 <div>
                                   <div className="flex justify-between mb-1">
-                                    <label className="text-xs font-medium text-gray-700">Contraste</label>
-                                    <span className="text-[10px] text-gray-500">{editingProduct.contrast ?? 100}%</span>
+                                    <label className="text-xs font-medium text-gray-700">Contraste {selectedImageId ? '(Img. Seleccionada)' : ''}</label>
+                                    <span className="text-[10px] text-gray-500">{currentImageSettings.contrast}%</span>
                                   </div>
                                   <input
                                     type="range"
                                     min="50"
                                     max="150"
-                                    value={editingProduct.contrast ?? 100}
-                                    onChange={(e) => setEditingProduct({ ...editingProduct, contrast: Number(e.target.value) })}
-                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600"
+                                    value={currentImageSettings.contrast}
+                                    onChange={(e) => {
+                                      if (!selectedImageId) return;
+                                      setImageSettingsMap(prev => ({
+                                        ...prev,
+                                        [selectedImageId]: { ...prev[selectedImageId], contrast: Number(e.target.value) }
+                                      }));
+                                    }}
+                                    disabled={!selectedImageId}
+                                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-600 disabled:opacity-50"
                                   />
                                 </div>
                               </div>
@@ -1901,6 +2012,19 @@ const Admin: React.FC = () => {
                                   product.additionalImages.forEach((u, i) => imgs.push({ type: 'url', url: u, id: `add-${i}` }));
                                 }
                                 setEditingImages(imgs);
+
+                                // Initialize settings map
+                                const map: Record<string, { brightness: number; contrast: number }> = {};
+                                const allUrls = [product.mainImage, ...(product.additionalImages || [])].filter(Boolean);
+                                allUrls.forEach(u => {
+                                  if (product.imageSettings && product.imageSettings[u]) {
+                                    map[u] = product.imageSettings[u];
+                                  } else {
+                                    map[u] = { brightness: product.brightness ?? 100, contrast: product.contrast ?? 100 };
+                                  }
+                                });
+                                setImageSettingsMap(map);
+                                if (allUrls.length > 0) setSelectedImageId(allUrls[0]);
                               }}
                               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-1"
                             >

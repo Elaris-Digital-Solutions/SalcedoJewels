@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, Share2, ShoppingBag, Truck, Shield, CreditCard, CheckCircle, XCircle, Plus, Minus } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
-import { getOptimizedImageUrl } from '../utils/imageUtils';
+import { getOptimizedImageUrl, getImageSettings } from '../utils/imageUtils';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -113,7 +113,11 @@ const ProductDetail: React.FC = () => {
             {/* Main Image */}
             <div className="aspect-square bg-cream-50 rounded-lg overflow-hidden border border-beige-200">
               <img
-                src={getOptimizedImageUrl(allImages[selectedImage], 1200, product.brightness, product.contrast)}
+                src={(() => {
+                  const imgUrl = allImages[selectedImage];
+                  const { brightness, contrast } = getImageSettings(imgUrl, product);
+                  return getOptimizedImageUrl(imgUrl, 1200, brightness, contrast);
+                })()}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -127,12 +131,15 @@ const ProductDetail: React.FC = () => {
                     key={index}
                     onClick={() => setSelectedImage(index)}
                     className={`aspect-square rounded-md overflow-hidden border-2 transition-all duration-200 ${selectedImage === index
-                        ? 'border-gold-500 ring-2 ring-gold-200'
-                        : 'border-beige-200 hover:border-gold-300'
+                      ? 'border-gold-500 ring-2 ring-gold-200'
+                      : 'border-beige-200 hover:border-gold-300'
                       }`}
                   >
                     <img
-                      src={getOptimizedImageUrl(image, 200, product.brightness, product.contrast)}
+                      src={(() => {
+                        const { brightness, contrast } = getImageSettings(image, product);
+                        return getOptimizedImageUrl(image, 200, brightness, contrast);
+                      })()}
                       alt={`${product.name} - Vista ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -160,8 +167,8 @@ const ProductDetail: React.FC = () => {
                 </div>
                 {/* Stock Status */}
                 <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border ${!isOutOfStock && (!hasVariants || selectedSize)
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                    : 'bg-red-50 border-red-200 text-red-700'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-red-50 border-red-200 text-red-700'
                   }`}>
                   {!isOutOfStock && (!hasVariants || selectedSize) ? (
                     <>
@@ -207,10 +214,10 @@ const ProductDetail: React.FC = () => {
                       onClick={() => setSelectedSize(variant.size)}
                       disabled={variant.stock === 0}
                       className={`px-4 py-2 rounded-md border text-sm font-medium transition-all duration-200 ${selectedSize === variant.size
-                          ? 'border-gold-500 bg-gold-50 text-gold-700 ring-1 ring-gold-500'
-                          : variant.stock === 0
-                            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed decoration-slice'
-                            : 'border-gray-300 hover:border-gold-300 text-gray-700 hover:bg-gray-50'
+                        ? 'border-gold-500 bg-gold-50 text-gold-700 ring-1 ring-gold-500'
+                        : variant.stock === 0
+                          ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed decoration-slice'
+                          : 'border-gray-300 hover:border-gold-300 text-gray-700 hover:bg-gray-50'
                         }`}
                     >
                       {variant.size}
@@ -292,8 +299,8 @@ const ProductDetail: React.FC = () => {
                   onClick={handleAddToCart}
                   disabled={!canAddToCart}
                   className={`flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-md font-medium transition-all duration-200 ${canAddToCart
-                      ? 'bg-gold-500 hover:bg-gold-600 text-white hover:shadow-lg'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ? 'bg-gold-500 hover:bg-gold-600 text-white hover:shadow-lg'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                 >
                   <ShoppingBag className="h-5 w-5" />
@@ -312,8 +319,8 @@ const ProductDetail: React.FC = () => {
                 <button
                   onClick={() => setIsFavorite(!isFavorite)}
                   className={`p-3 rounded-md border transition-all duration-200 ${isFavorite
-                      ? 'border-red-300 bg-red-50 text-red-600'
-                      : 'border-beige-300 hover:border-gold-300 hover:bg-cream-50 text-gray-600'
+                    ? 'border-red-300 bg-red-50 text-red-600'
+                    : 'border-beige-300 hover:border-gold-300 hover:bg-cream-50 text-gray-600'
                     }`}
                 >
                   <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />

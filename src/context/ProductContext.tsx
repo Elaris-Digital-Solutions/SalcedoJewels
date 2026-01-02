@@ -30,8 +30,6 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         .from('products')
         .select(`
           *,
-          brightness,
-          contrast,
           product_images (
             public_id,
             secure_url,
@@ -82,7 +80,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
             variants: item.variants,
             sortOrder: item.sort_order,
             brightness: item.brightness,
-            contrast: item.contrast
+            contrast: item.contrast,
+            imageSettings: item.image_settings
           };
         });
         setProducts(mappedProducts);
@@ -108,7 +107,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         stock: product.stock,
         variants: product.variants,
         brightness: product.brightness,
-        contrast: product.contrast
+        contrast: product.contrast,
+        image_settings: product.imageSettings
       };
 
       const { data, error } = await supabase
@@ -151,6 +151,7 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (updatedProduct.sortOrder !== undefined) dbUpdate.sort_order = updatedProduct.sortOrder;
       if (updatedProduct.brightness !== undefined) dbUpdate.brightness = updatedProduct.brightness;
       if (updatedProduct.contrast !== undefined) dbUpdate.contrast = updatedProduct.contrast;
+      if (updatedProduct.imageSettings !== undefined) dbUpdate.image_settings = updatedProduct.imageSettings;
 
       const { data, error } = await supabase
         .from('products')
@@ -168,7 +169,8 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
             ...updatedProduct,
             // Ensure we use the values actually saved in DB if available
             brightness: saved?.brightness ?? updatedProduct.brightness,
-            contrast: saved?.contrast ?? updatedProduct.contrast
+            contrast: saved?.contrast ?? updatedProduct.contrast,
+            imageSettings: saved?.image_settings ?? updatedProduct.imageSettings
           } : product
         )
       );

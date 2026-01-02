@@ -34,3 +34,13 @@ export const getOptimizedImageUrl = (url: string, width: number = 500, brightnes
 
   return url;
 };
+
+export const getImageSettings = (url: string, product: { brightness?: number; contrast?: number; imageSettings?: Record<string, { brightness: number; contrast: number }> }) => {
+  if (product.imageSettings && product.imageSettings[url]) {
+    return product.imageSettings[url];
+  }
+  return {
+    brightness: product.brightness ?? 100,
+    contrast: product.contrast ?? 100
+  };
+};

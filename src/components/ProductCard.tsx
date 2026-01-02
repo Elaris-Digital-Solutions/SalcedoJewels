@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Eye } from 'lucide-react';
 import { Product } from '../types/Product';
 import { useCart } from '../context/CartContext';
-import { getOptimizedImageUrl } from '../utils/imageUtils';
+import { getOptimizedImageUrl, getImageSettings } from '../utils/imageUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -14,7 +14,8 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, priority = false, compact = false, imageWidth = 700 }) => {
   const { isInCart } = useCart();
-  const optimizedImage = getOptimizedImageUrl(product.mainImage, imageWidth, product.brightness, product.contrast);
+  const { brightness, contrast } = getImageSettings(product.mainImage, product);
+  const optimizedImage = getOptimizedImageUrl(product.mainImage, imageWidth, brightness, contrast);
 
   return (
     <div className="group bg-white rounded-lg overflow-hidden shadow-sm border border-beige-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
